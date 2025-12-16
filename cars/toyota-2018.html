@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>2018 Toyota Camry — PAB SHOP</title>
+  <meta name="description" content="2018 Toyota Camry for sale - $19,800">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --text:#0f1724;
+      --accent:#0b6eff;
+      --glass:rgba(255,255,255,0.65);
+      --shadow:0 6px 20px rgba(12,15,20,0.06);
+      --border:rgba(0,0,0,0.04);
+    }
+    [data-theme="dark"]{
+      --bg:#0b0f16;
+      --card:#0f1724;
+      --muted:#94a3b8;
+      --text:#e6eef8;
+      --accent:#4ea8ff;
+      --glass:rgba(255,255,255,0.05);
+      --shadow:0 10px 30px rgba(0,0,0,0.6);
+      --border:rgba(255,255,255,0.03);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:Inter,system-ui;
+      background:var(--bg);
+      color:var(--text);
+      transition:background 0.4s ease, color 0.4s ease;
+      line-height:1.6;
+    }
+    .container{max-width:1200px;margin:0 auto;padding:0 20px}
+
+    /* EXACT COPY FROM HOMEPAGE - DO NOT CHANGE */
+    header{
+      position:sticky;
+      top:0;
+      z-index:100;
+      backdrop-filter:blur(12px) saturate(180%);
+      background:var(--glass);
+      border-bottom:1px solid var(--border);
+      transition:all 0.4s ease;
+    }
+    .header-inner{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:16px 0;
+    }
+    .logo{
+      font-weight:700;
+      color:var(--accent);
+      font-size:22px;
+      letter-spacing:-0.5px;
+      text-decoration:none; /* Added for links */
+    }
+    nav{display:flex;gap:8px;align-items:center}
+    nav a{
+      padding:10px 16px;
+      color:var(--muted);
+      text-decoration:none;
+      font-weight:600;
+      border-radius:8px;
+      transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+      font-size:15px;
+    }
+    nav a:hover{
+      color:var(--text);
+      background:var(--glass);
+      transform:translateY(-1px);
+    }
+
+    .theme-toggle{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:24px;
+      padding:8px 16px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:14px;
+      font-weight:600;
+      color:var(--text);
+      transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+      box-shadow:var(--shadow);
+    }
+    .theme-toggle:hover{
+      transform:scale(1.08);
+      box-shadow:0 8px 25px rgba(0,0,0,0.1);
+    }
+    .theme-toggle:active{transform:scale(0.98)}
+    .theme-icon{font-size:18px;transition:transform 0.6s ease}
+    .theme-toggle:hover .theme-icon{transform:rotate(20deg)}
+
+    .back-link{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      color:var(--muted);
+      text-decoration:none;
+      font-weight:600;
+      margin:30px 0 20px;
+      transition:all 0.3s ease;
+      font-size:15px;
+    }
+    .back-link:hover{
+      color:var(--accent);
+      transform:translateX(-4px);
+    }
+
+    .car-detail{
+      padding:20px 0 60px;
+    }
+    
+    .car-header{
+      margin-bottom:40px;
+    }
+    .car-header h1{
+      font-size:clamp(32px,5vw,48px);
+      margin:0 0 16px;
+      font-weight:700;
+      letter-spacing:-1px;
+    }
+    .car-price{
+      font-size:36px;
+      color:var(--accent);
+      font-weight:700;
+      margin-bottom:8px;
+    }
+    .car-meta{
+      color:var(--muted);
+      font-size:18px;
+    }
+
+    .content-grid{
+      display:grid;
+      grid-template-columns:2fr 1fr;
+      gap:40px;
+      margin-bottom:60px;
+    }
+
+    .gallery{
+      background:var(--card);
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      border:1px solid var(--border);
+    }
+    .main-img{
+      width:100%;
+      height:500px;
+      object-fit:cover;
+      cursor:pointer;
+      transition:transform 0.3s ease;
+    }
+    .main-img:hover{
+      transform:scale(1.02);
+    }
+    .thumbs{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+      padding:20px;
+      background:var(--bg);
+    }
+    .thumb{
+      aspect-ratio:4/3;
+      border-radius:8px;
+      overflow:hidden;
+      cursor:pointer;
+      border:3px solid transparent;
+      transition:all 0.3s ease;
+    }
+    .thumb:hover{
+      border-color:var(--accent);
+      transform:scale(1.05);
+    }
+    .thumb.active{
+      border-color:var(--accent);
+    }
+    .thumb img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .sidebar{
+      display:flex;
+      flex-direction:column;
+      gap:24px;
+    }
+
+    .info-card{
+      background:var(--card);
+      border-radius:16px;
+      padding:28px;
+      box-shadow:var(--shadow);
+      border:1px solid var(--border);
+    }
+    .info-card h3{
+      margin:0 0 20px;
+      font-size:20px;
+      font-weight:700;
+    }
+    .spec-list{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    .spec-item{
+      display:flex;
+      justify-content:space-between;
+      padding-bottom:12px;
+      border-bottom:1px solid var(--border);
+    }
+    .spec-item:last-child{
+      border:0;
+      padding-bottom:0;
+    }
+    .spec-label{
+      color:var(--muted);
+      font-size:15px;
+    }
+    .spec-value{
+      font-weight:600;
+      text-align:right;
+    }
+
+    .contact-card{
+      background:linear-gradient(135deg,var(--accent),#2b8fff);
+      color:#fff;
+      text-align:center;
+    }
+    .contact-card h3{
+      color:#fff;
+    }
+    .contact-card p{
+      margin:16px 0 24px;
+      opacity:0.95;
+      font-size:15px;
+    }
+    .contact-btn{
+      display:block;
+      background:#fff;
+      color:var(--accent);
+      padding:14px 28px;
+      border-radius:10px;
+      text-decoration:none;
+      font-weight:700;
+      transition:all 0.3s ease;
+      box-shadow:0 4px 15px rgba(0,0,0,0.2);
+    }
+    .contact-btn:hover{
+      transform:translateY(-3px);
+      box-shadow:0 8px 25px rgba(0,0,0,0.3);
+    }
+
+    .description{
+      background:var(--card);
+      border-radius:16px;
+      padding:32px;
+      box-shadow:var(--shadow);
+      border:1px solid var(--border);
+      margin-bottom:40px;
+    }
+    .description h2{
+      margin:0 0 20px;
+      font-size:28px;
+      font-weight:700;
+    }
+    .description p{
+      color:var(--muted);
+      font-size:16px;
+      line-height:1.8;
+      margin-bottom:16px;
+    }
+    .description ul{
+      margin:20px 0;
+      padding-left:20px;
+    }
+    .description li{
+      color:var(--muted);
+      margin-bottom:10px;
+      line-height:1.8;
+    }
+
+    .features{
+      background:var(--card);
+      border-radius:16px;
+      padding:32px;
+      box-shadow:var(--shadow);
+      border:1px solid var(--border);
+    }
+    .features h2{
+      margin:0 0 24px;
+      font-size:28px;
+      font-weight:700;
+    }
+    .feature-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:16px;
+    }
+    .feature-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:16px;
+      background:var(--bg);
+      border-radius:10px;
+      transition:all 0.3s ease;
+    }
+    .feature-item:hover{
+      transform:translateX(4px);
+      background:var(--glass);
+    }
+    .feature-icon{
+      font-size:24px;
+      flex-shrink:0;
+    }
+    .feature-text{
+      font-size:15px;
+      font-weight:600;
+    }
+
+    /* EXACT COPY FROM HOMEPAGE - DO NOT CHANGE */
+    @media(max-width:968px){
+      .content-grid{
+        grid-template-columns:1fr;
+      }
+      .main-img{
+        height:400px;
+      }
+    }
+
+    /* EXACT COPY FROM HOMEPAGE - DO NOT CHANGE */
+    @media(max-width:768px){
+      .header-inner{padding:12px 0 }
+      nav{
+        display:flex;
+        flex-wrap:wrap;
+        justify-content:center;
+        gap:6px;
+      }
+      nav a{
+        padding:8px 14px;
+        font-size:14px;
+      }
+      /* Detail page specific mobile styles */
+      .car-price{font-size:28px}
+      .main-img{height:300px}
+      .thumbs{
+        grid-template-columns:repeat(3,1fr);
+        gap:8px;
+        padding:12px;
+      }
+      .description,.features{
+        padding:24px;
+      }
+      .feature-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    /* EXACT COPY FROM HOMEPAGE - DO NOT CHANGE */
+    @media(max-width:480px){
+      .logo{font-size:20px}
+      .theme-toggle{padding:6px 12px;font-size:13px}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <a href="../index.html" class="logo">PAB SHOP</a>
+    <nav>
+      <a href="../index.html#home">Home</a>
+      <a href="../index.html#cars">Cars</a>
+      <a href="../index.html#contact">Contact</a>
+    </nav>
+    <button id="themeToggle" class="theme-toggle">
+      <span class="theme-icon" id="themeIcon">🌙</span>
+      <span id="themeText">Dark</span>
+    </button>
+  </div>
+</header>
+
+<div class="container">
+  <a href="../index.html#cars" class="back-link">← Back to all cars</a>
+
+  <section class="car-detail">
+    <!-- ============================================================ -->
+    <!-- EDITABLE: Car Header -->
+    <!-- ============================================================ -->
+    <div class="car-header">
+      <h1>2018 Toyota Camry</h1> <!-- EDITABLE: Car name -->
+      <div class="car-price">$19,800</div> <!-- EDITABLE: Price -->
+      <div class="car-meta">65,800 miles · Clean title · One owner</div> <!-- EDITABLE: Quick info -->
+    </div>
+
+    <div class="content-grid">
+      <!-- Gallery Section -->
+      <div class="gallery">
+        <img id="mainImg" class="main-img" src="https://picsum.photos/seed/toyota/800/600" alt="Main car image">
+        <div class="thumbs">
+          <!-- EDITABLE: Add your actual car images here -->
+          <div class="thumb active" data-img="https://picsum.photos/seed/toyota/800/600">
+            <img src="https://picsum.photos/seed/toyota/800/600" alt="View 1">
+          </div>
+          <div class="thumb" data-img="https://picsum.photos/seed/toyota2/800/600">
+            <img src="https://picsum.photos/seed/toyota2/800/600" alt="View 2">
+          </div>
+          <div class="thumb" data-img="https://picsum.photos/seed/toyota3/800/600">
+            <img src="https://picsum.photos/seed/toyota3/800/600" alt="View 3">
+          </div>
+          <div class="thumb" data-img="https://picsum.photos/seed/toyota4/800/600">
+            <img src="https://picsum.photos/seed/toyota4/800/600" alt="View 4">
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <!-- ============================================================ -->
+        <!-- EDITABLE: Specifications -->
+        <!-- ============================================================ -->
+        <div class="info-card">
+          <h3>Specifications</h3>
+          <div class="spec-list">
+            <div class="spec-item">
+              <span class="spec-label">Year</span>
+              <span class="spec-value">2018</span> <!-- EDITABLE -->
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Make</span>
+              <span class="spec-value">Toyota</span> <!-- EDITABLE -->
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Model</span>
+              <span class="spec-value">Camry SE</span> <!-- EDITABLE -->
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Mileage</span>
+              <span class="spec-value">65,800 mi</span> <!-- EDITABLE -->
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Engine</span>
+              <span class="spec-value">2.5L 4-Cyl</span> <!-- EDITABLE -->
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Transmission</span>
+              <span class="spec-value">Automatic</span> <!-- EDITABLE -->
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Drivetrain</span>
+              <span class="spec-value">FWD</span> <!-- EDITABLE -->
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Exterior</span>
+              <span class="spec-value">Silver</span> <!-- EDITABLE -->
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Interior</span>
+              <span class="spec-value">Black Cloth</span> <!-- EDITABLE -->
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">VIN</span>
+              <span class="spec-value">4T1B11HK...</span> <!-- EDITABLE -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- EDITABLE: Contact Info -->
+        <!-- ============================================================ -->
+        <div class="info-card contact-card">
+          <h3>Interested?</h3>
+          <p>Contact us today to schedule a test drive or get more information.</p>
+          <a href="tel:+15165657312" class="contact-btn">📞 Call Now</a> <!-- EDITABLE: Phone -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- EDITABLE: Description -->
+    <!-- ============================================================ -->
+    <div class="description">
+      <h2>About This Car</h2>
+      <p>
+        This 2018 Toyota Camry SE is a reliable daily driver with a clean history and excellent maintenance records. 
+        The 2.5L 4-cylinder engine delivers great fuel economy while providing smooth and responsive performance. 
+        Perfect for commuters or families looking for a dependable sedan.
+      </p>
+      <p>
+        The Camry has been meticulously maintained with regular oil changes, tire rotations, and inspections. 
+        All service records are available. The vehicle has never been in an accident and has a clean CARFAX report.
+      </p>
+      <p><strong>Recent maintenance includes:</strong></p>
+      <ul>
+        <li>New brake pads and rotors (2,000 miles ago)</li>
+        <li>Fresh oil change and filter</li>
+        <li>New battery installed</li>
+        <li>Alignment and tire balance</li>
+      </ul>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- EDITABLE: Features -->
+    <!-- ============================================================ -->
+    <div class="features">
+      <h2>Features & Options</h2>
+      <div class="feature-grid">
+        <div class="feature-item">
+          <span class="feature-icon">🎵</span>
+          <span class="feature-text">Premium Audio</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📱</span>
+          <span class="feature-text">Bluetooth</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📷</span>
+          <span class="feature-text">Backup Camera</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">❄️</span>
+          <span class="feature-text">Climate Control</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🔑</span>
+          <span class="feature-text">Keyless Entry</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🚗</span>
+          <span class="feature-text">Cruise Control</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">💺</span>
+          <span class="feature-text">Power Seats</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🛡️</span>
+          <span class="feature-text">Lane Departure</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🎯</span>
+          <span class="feature-text">Adaptive Cruise</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">☀️</span>
+          <span class="feature-text">Sunroof</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">💡</span>
+          <span class="feature-text">LED Headlights</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🌟</span>
+          <span class="feature-text">Alloy Wheels</span>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<footer style="text-align:center;padding:40px 0;color:var(--muted);border-top:1px solid var(--border);margin-top:60px;font-size:14px;">
+  <div class="container">
+    <p>© 2025 PAB SHOP. All rights reserved.</p> <!-- EDITABLE: Footer text -->
+  </div>
+</footer>
+
+<script>
+  // Theme toggle
+  const root=document.documentElement;
+  const toggle=document.getElementById('themeToggle');
+  const icon=document.getElementById('themeIcon');
+  const text=document.getElementById('themeText');
+  
+  const saved=localStorage.getItem('theme')||'light';
+  root.setAttribute('data-theme',saved);
+  updateThemeUI(saved);
+
+  function updateThemeUI(theme){
+    if(theme==='dark'){
+      icon.textContent='☀️';
+      text.textContent='Light';
+    }else{
+      icon.textContent='🌙';
+      text.textContent='Dark';
+    }
+  }
+
+  toggle.onclick=()=>{
+    const current=root.getAttribute('data-theme');
+    const newTheme=current==='dark'?'light':'dark';
+    root.setAttribute('data-theme',newTheme);
+    localStorage.setItem('theme',newTheme);
+    updateThemeUI(newTheme);
+  };
+
+  // Image gallery
+  const mainImg=document.getElementById('mainImg');
+  const thumbs=document.querySelectorAll('.thumb');
+  
+  thumbs.forEach(thumb=>{
+    thumb.addEventListener('click',()=>{
+      thumbs.forEach(t=>t.classList.remove('active'));
+      thumb.classList.add('active');
+      mainImg.src=thumb.dataset.img;
+    });
+  });
+
+  // Click main image to open in new tab
+  mainImg.addEventListener('click',()=>{
+    window.open(mainImg.src,'_blank');
+  });
+</script>
+
+</body>
+</html>

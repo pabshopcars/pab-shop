@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sold Cars — PAB SHOP</title>
+  <meta name="description" content="Recently sold vehicles from our inventory">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --text:#0f1724;
+      --accent:#0b6eff;
+      --glass:rgba(255,255,255,0.65);
+      --shadow:0 6px 20px rgba(12,15,20,0.06);
+      --border:rgba(0,0,0,0.04);
+      --sold:#ef4444;
+    }
+    [data-theme="dark"]{
+      --bg:#0b0f16;
+      --card:#0f1724;
+      --muted:#94a3b8;
+      --text:#e6eef8;
+      --accent:#4ea8ff;
+      --glass:rgba(255,255,255,0.05);
+      --shadow:0 10px 30px rgba(0,0,0,0.6);
+      --border:rgba(255,255,255,0.03);
+      --sold:#f87171;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:Inter,system-ui;
+      background:var(--bg);
+      color:var(--text);
+      transition:background 0.4s ease, color 0.4s ease;
+      line-height:1.6;
+    }
+    .container{max-width:1200px;margin:0 auto;padding:0 20px}
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:100;
+      backdrop-filter:blur(12px) saturate(180%);
+      background:var(--glass);
+      border-bottom:1px solid var(--border);
+      transition:all 0.4s ease;
+    }
+    .header-inner{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:16px 0;
+    }
+    .logo{
+      font-weight:700;
+      color:var(--accent);
+      font-size:22px;
+      letter-spacing:-0.5px;
+    }
+    nav{display:flex;gap:8px;align-items:center}
+    nav a{
+      padding:10px 16px;
+      color:var(--muted);
+      text-decoration:none;
+      font-weight:600;
+      border-radius:8px;
+      transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+      font-size:15px;
+    }
+    nav a:hover{
+      color:var(--text);
+      background:var(--glass);
+      transform:translateY(-1px);
+    }
+
+    .theme-toggle{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:24px;
+      padding:8px 16px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:14px;
+      font-weight:600;
+      color:var(--text);
+      transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+      box-shadow:var(--shadow);
+    }
+    .theme-toggle:hover{
+      transform:scale(1.08);
+      box-shadow:0 8px 25px rgba(0,0,0,0.1);
+    }
+    .theme-toggle:active{transform:scale(0.98)}
+    .theme-icon{font-size:18px;transition:transform 0.6s ease}
+    .theme-toggle:hover .theme-icon{transform:rotate(20deg)}
+
+    .hero{
+      padding:60px 0 40px;
+      text-align:center;
+    }
+    .hero h1{
+      font-size:clamp(32px,6vw,52px);
+      margin:0 0 12px;
+      color:var(--text);
+      font-weight:700;
+      letter-spacing:-1px;
+    }
+    .hero p{
+      color:var(--muted);
+      font-size:18px;
+      margin-bottom:30px;
+    }
+
+    .back-link{
+      display:inline-block;
+      padding:12px 24px;
+      margin-top:8px;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:10px;
+      color:var(--muted);
+      text-decoration:none;
+      font-weight:600;
+      font-size:15px;
+      transition:all 0.3s ease;
+      box-shadow:var(--shadow);
+    }
+    .back-link:hover{
+      color:var(--text);
+      transform:translateY(-2px);
+      box-shadow:0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    #cars{padding:50px 20px}
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+      gap:28px;
+      margin-top:40px;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      transition:all 0.4s cubic-bezier(0.4,0,0.2,1);
+      border:1px solid var(--border);
+      cursor:pointer;
+      position:relative;
+    }
+    .card:hover{
+      transform:translateY(-8px) scale(1.02);
+      box-shadow:0 20px 40px rgba(0,0,0,0.15);
+    }
+    .card-img-wrap{
+      position:relative;
+      overflow:hidden;
+      height:220px;
+    }
+    .card img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      transition:transform 0.6s cubic-bezier(0.4,0,0.2,1);
+      filter:grayscale(30%);
+      opacity:0.85;
+    }
+    .card:hover img{transform:scale(1.1)}
+    
+    .sold-badge{
+      position:absolute;
+      top:16px;
+      right:16px;
+      background:var(--sold);
+      color:#fff;
+      padding:8px 16px;
+      border-radius:8px;
+      font-weight:700;
+      font-size:14px;
+      letter-spacing:0.5px;
+      box-shadow:0 4px 12px rgba(239,68,68,0.4);
+      z-index:10;
+    }
+    
+    .card-body{padding:20px}
+    .card h3{
+      margin:0 0 10px;
+      font-size:20px;
+      color:var(--text);
+      font-weight:700;
+    }
+    .price{
+      font-weight:700;
+      margin:8px 0;
+      color:var(--muted);
+      font-size:24px;
+      letter-spacing:-0.5px;
+      text-decoration:line-through;
+    }
+    .card p{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    footer{
+      text-align:center;
+      padding:40px 0;
+      color:var(--muted);
+      border-top:1px solid var(--border);
+      margin-top:60px;
+      font-size:14px;
+    }
+
+    @media(max-width:768px){
+      .header-inner{padding:12px 0}
+      nav{
+        display:flex;
+        flex-wrap:wrap;
+        justify-content:center;
+        gap:6px;
+      }
+      nav a{
+        padding:8px 14px;
+        font-size:14px;
+      }
+      .hero{padding:40px 0 30px}
+      .hero h1{font-size:36px}
+      .back-link{width:100%;text-align:center}
+      .grid{grid-template-columns:1fr;gap:24px}
+    }
+
+    @media(max-width:480px){
+      .logo{font-size:20px}
+      .theme-toggle{padding:6px 12px;font-size:13px}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <div class="logo">PAB SHOP</div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="index.html#cars">Cars</a>
+      <a href="index.html#contact">Contact</a>
+    </nav>
+    <button id="themeToggle" class="theme-toggle">
+      <span class="theme-icon" id="themeIcon">🌙</span>
+      <span id="themeText">Dark</span>
+    </button>
+  </div>
+</header>
+
+<section class="hero" id="home">
+  <div class="container">
+    <h1>Sold Cars</h1>
+    <p>Recently sold vehicles from our inventory</p>
+    <a class="back-link" href="index.html">← Back to Available Cars</a>
+  </div>
+</section>
+
+<section id="cars" class="container">
+  <div class="grid" id="grid">
+    
+    <!-- ============================================================ -->
+    <!-- EDITABLE: SOLD CAR LISTING 1 -->
+    <!-- Copy car blocks from index.html and add them here -->
+    <!-- ============================================================ -->
+    <div class="card" data-title="bmw 2017">
+      <div class="card-img-wrap">
+        <span class="sold-badge">SOLD</span>
+        <img src="https://picsum.photos/seed/bmwsold/600/400" alt="BMW">
+      </div>
+      <div class="card-body">
+        <h3>2017 BMW 5 Series</h3> <!-- EDITABLE: Car name -->
+        <div class="price">$24,900</div> <!-- EDITABLE: Price -->
+        <p>62,400 mi · Executive package</p> <!-- EDITABLE: Details -->
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- EDITABLE: SOLD CAR LISTING 2 -->
+    <!-- ============================================================ -->
+    <div class="card" data-title="audi 2016">
+      <div class="card-img-wrap">
+        <span class="sold-badge">SOLD</span>
+        <img src="https://picsum.photos/seed/audisold/600/400" alt="Audi">
+      </div>
+      <div class="card-body">
+        <h3>2016 Audi Q5</h3> <!-- EDITABLE: Car name -->
+        <div class="price">$22,500</div> <!-- EDITABLE: Price -->
+        <p>71,200 mi · Quattro AWD</p> <!-- EDITABLE: Details -->
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- EDITABLE: SOLD CAR LISTING 3 -->
+    <!-- ============================================================ -->
+    <div class="card" data-title="lexus 2018">
+      <div class="card-img-wrap">
+        <span class="sold-badge">SOLD</span>
+        <img src="https://picsum.photos/seed/lexussold/600/400" alt="Lexus">
+      </div>
+      <div class="card-body">
+        <h3>2018 Lexus ES 350</h3> <!-- EDITABLE: Car name -->
+        <div class="price">$26,800</div> <!-- EDITABLE: Price -->
+        <p>48,900 mi · Luxury sedan</p> <!-- EDITABLE: Details -->
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TO ADD MORE SOLD CARS: Copy blocks above and paste here -->
+    <!-- ============================================================ -->
+
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>© 2025 PAB SHOP. All rights reserved.</p> <!-- EDITABLE: Footer text -->
+  </div>
+</footer>
+
+<script>
+  // Theme toggle
+  const root=document.documentElement;
+  const toggle=document.getElementById('themeToggle');
+  const icon=document.getElementById('themeIcon');
+  const text=document.getElementById('themeText');
+  
+  const saved=localStorage.getItem('theme')||'light';
+  root.setAttribute('data-theme',saved);
+  updateThemeUI(saved);
+
+  function updateThemeUI(theme){
+    if(theme==='dark'){
+      icon.textContent='☀️';
+      text.textContent='Light';
+    }else{
+      icon.textContent='🌙';
+      text.textContent='Dark';
+    }
+  }
+
+  toggle.onclick=()=>{
+    const current=root.getAttribute('data-theme');
+    const newTheme=current==='dark'?'light':'dark';
+    root.setAttribute('data-theme',newTheme);
+    localStorage.setItem('theme',newTheme);
+    updateThemeUI(newTheme);
+  };
+
+  // Make cards clickable to detail pages
+  document.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('click',()=>{
+      const carId=card.dataset.title.replace(/\s+/g,'-');
+      window.location.href=`cars/${carId}.html`;
+    });
+  });
+</script>
+
+</body>
+</html>
