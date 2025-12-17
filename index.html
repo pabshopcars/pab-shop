@@ -483,24 +483,25 @@ project-root/
 <script>
   const supabaseUrl = "https://liipbpmjqjqxkuflufkv.supabase.co";
   const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpaXBicG1qcWpxeGt1Zmx1Zmt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MTg0MjYsImV4cCI6MjA4MTQ5NDQyNn0.LrIRgiVCE6E9vyXduQZEkdKAmmLDij2kQN2ajjavTS8";
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
 <script>
 async function loadCars() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("cars")
     .select("*");
 
   if (error) {
-    console.error(error);
+    console.error("Supabase error:", error);
     return;
   }
 
-  console.log(data);
+  console.log("Cars:", data);
 }
 
 loadCars();
 </script>
+
 <!------------------------------ END SUPABASE ------------------------------>
 
 <body>
