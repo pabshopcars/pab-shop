@@ -335,6 +335,46 @@ project-root/
       margin-top:40px;
     }
 
+
+
+
+
+    /* Admin controls on cards */
+.admin-actions{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+}
+
+.admin-actions .mini-btn{
+  flex:1;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--card);
+  color:var(--text);
+  font-weight:700;
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+
+.admin-actions .mini-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:var(--shadow);
+  border-color:var(--accent);
+}
+
+.admin-actions .danger{
+  border-color:rgba(239,68,68,0.35);
+}
+
+.admin-actions .danger:hover{
+  border-color:rgba(239,68,68,0.8);
+}
+
+
+
+
     .card{
       background:var(--card);
       border-radius:16px;
@@ -636,10 +676,16 @@ project-root/
   <div class="container">
     <h1>Find your next car</h1>
     <p>Clean listings. Clear pricing. Direct contact.</p>
-    <div class="controls">
-      <div class="search"><input id="q" placeholder="Search by make or model..."></div>
-      <a class="btn" href="#cars">Browse Cars</a>
-    </div>
+<div class="controls">
+  <div class="search"><input id="q" placeholder="Search by make or model..."></div>
+  <a class="btn" href="#cars">Browse Cars</a>
+
+  <!-- ADMIN ONLY -->
+  <a class="btn admin-only" id="addCarBtn" href="javascript:void(0)" style="display:none;">
+    + Add Car
+  </a>
+</div>
+
     <a class="sold-link" href="sold.html">View Sold Cars →</a>
   </div>
 </section>
@@ -684,7 +730,9 @@ async function loadCars() {
     return;
   }
   
-  const container = document.getElementById("grid"); // Changed from "car-list" to "grid"
+  const container = document.getElementById("grid");
+container.innerHTML = "";
+
   console.log("Rendered", data.length, "cars");
   
 data.forEach(car => {
@@ -702,24 +750,70 @@ card.addEventListener("click", () => {
     card.classList.add("sold");
   }
 
+const isAdminEffective = window.isAdmin && (localStorage.getItem("viewMode") !== "user");
+
 card.innerHTML = `
   <div class="card-img-wrap">
-    <img src="${car.cover_image || ""}" alt="${car.title || "Car"}" loading="lazy">
+    <img src="${car.cover_image || ""}" alt="${car.title || "Car"}">
   </div>
-
   <div class="card-body">
     <h3>${car.title || "Untitled"}</h3>
-    <div class="price">$${car.price ?? ""}</div>
+    <div class="price">$${(car.price ?? "").toString()}</div>
     <p>${car.mileage ?? "—"} mi · ${car.history_status || "Clean history"}</p>
 
-    <!-- ADMIN ONLY BUTTONS -->
-    <div class="admin-actions admin-only" style="display:none;">
-      <button class="admin-btn" data-action="edit">Edit</button>
-      <button class="admin-btn success" data-action="sold">${car.status === "sold" ? "Unmark Sold" : "Mark Sold"}</button>
-      <button class="admin-btn danger" data-action="delete">Delete</button>
-    </div>
+    ${isAdminEffective ? `
+      <div class="admin-actions admin-only">
+        <button class="mini-btn" data-action="edit">Edit</button>
+        <button class="mini-btn" data-action="sold">${car.status === "sold" ? "Un-Sold" : "Sold"}</button>
+        <button class="mini-btn danger" data-action="delete">Delete</button>
+      </div>
+    ` : ""}
   </div>
 `;
+
+
+
+
+
+
+
+// Admin button handlers (prevent card click)
+if (window.isAdmin && (localStorage.getItem("viewMode") !== "user")) {
+  card.querySelectorAll("[data-action]").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation(); // IMPORTANT: prevents opening the car page
+
+      const action = btn.dataset.action;
+
+      if (action === "edit") {
+        // For Phase 1, just jump to car page and reuse your edit button there later
+        window.location.href = `cars/cars.html?id=${car.id}&edit=1`;
+      }
+
+      if (action === "sold") {
+        const nextStatus = (car.status === "sold") ? "available" : "sold";
+        const ok = confirm(`Set status to "${nextStatus}"?`);
+        if (!ok) return;
+
+        const { error } = await db.from("cars").update({ status: nextStatus }).eq("id", car.id);
+        if (error) { console.error(error); alert("Failed to update."); return; }
+
+        loadCars(); // refresh list
+      }
+
+      if (action === "delete") {
+        const ok = confirm("Delete this car forever? (no undo)");
+        if (!ok) return;
+
+        const { error } = await db.from("cars").delete().eq("id", car.id);
+        if (error) { console.error(error); alert("Failed to delete."); return; }
+
+        loadCars(); // refresh list
+      }
+    });
+  });
+}
+
 
 // Admin button logic (only does something in admin view)
 const actions = card.querySelector(".admin-actions");
@@ -885,6 +979,50 @@ async function refreshAuthUI() {
   // show login box (logged out state)
   $("authLoggedOut") && ($("authLoggedOut").style.display = "");
   $("authLoggedIn") && ($("authLoggedIn").style.display = "none");
+});
+
+
+
+document.getElementById("addCarBtn")?.addEventListener("click", async () => {
+  const isAdminEffective = window.isAdmin && (localStorage.getItem("viewMode") !== "user");
+  if (!isAdminEffective) return;
+
+  const title = prompt("Car title (example: 2019 BMW 330i)");
+  if (!title) return;
+
+  const priceStr = prompt("Price (numbers only)");
+  const price = Number(priceStr);
+  if (!Number.isFinite(price)) { alert("Invalid price"); return; }
+
+  const mileageStr = prompt("Mileage (numbers only)");
+  const mileage = Number(mileageStr);
+  if (!Number.isFinite(mileage)) { alert("Invalid mileage"); return; }
+
+  const cover_image = prompt("Cover image URL (for now)");
+  if (!cover_image) { alert("Cover image required for now."); return; }
+
+ const payload = {
+  title,
+  price,
+  mileage,
+  status: "available",
+  cover_image,
+  images: [cover_image],
+  description: ""
+};
+
+const { data, error } = await db.from("cars").insert([payload]).select();
+
+if (error) {
+  console.error("INSERT ERROR:", error);
+  alert("Add car failed: " + (error.message || "unknown error"));
+  return;
+}
+
+console.log("Inserted:", data);
+
+
+  loadCars();
 });
 
   });
