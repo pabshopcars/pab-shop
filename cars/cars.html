@@ -852,11 +852,12 @@
     <!-- EDITABLE: Description -->
     <!-- ============================================================ -->
     <div class="description">
-      <h2>About This Car</h2>
-      <p>
-        This stunning 2019 BMW 330i xDrive is a perfect blend of luxury, performance, and technology. 
-      </p>
+  <h2>About This Car</h2>
+  <p id="carDescription">
+    Loading...
+  </p>
     </div>
+
   </section>
 
   <!-- ============================================================ -->
@@ -937,8 +938,9 @@
 
   // Image slider functionality
   const mainImg=document.getElementById('mainImg');
-  const thumbs=document.querySelectorAll('.thumb');
-  const images = Array.from(thumbs).map(t => t.dataset.img);
+ const thumbs=document.querySelectorAll('.thumb');
+const images = Array.from(thumbs).map(t => t.dataset.img);
+
   let currentIndex = 0;
 
   // Create dots
@@ -1095,16 +1097,10 @@
 </script>
 
 <!-------------------GPT------------------>
-<script>
-  const params = new URLSearchParams(window.location.search);
-  const carId = params.get("id");
+  
 
-  if (!carId) {
-    console.error("No car ID in URL");
-  } else {
-    console.log("Car ID:", carId);
-  }
-</script>
+
+
 <!-------------------GPT END------------------>
 <!-------------------GPT------------------>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1136,14 +1132,21 @@
     console.log("Loaded car:", data);
 
     renderHeader(data);
+
   }
 
-  function renderHeader(car) {
-  // header text
+function renderHeader(car) {
   document.querySelector(".car-header h1").textContent = car.title;
   document.querySelector(".car-price").textContent = `$${car.price}`;
   document.querySelector(".car-meta").textContent =
-    `${car.mileage || "—"} miles · ${car.history_status || "Clean history"}`;
+    `${car.mileage} miles · ${car.history_status || "Clean history"}`;
+
+
+      // ✅ Step 3: description
+  const descEl = document.getElementById("carDescription");
+  if (descEl) {
+    descEl.textContent = car.description || "No description available.";
+  }
 
   // ✅ Step 4: main image
   const mainImg = document.getElementById("mainImg");
@@ -1161,8 +1164,6 @@
     meta.setAttribute("content", `${car.title} for sale - $${car.price}`);
   }
 }
-
-
   loadCar();
 </script>
 <!---------------------GPT END------------------>

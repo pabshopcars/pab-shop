@@ -600,97 +600,6 @@ card.addEventListener("click", () => {
 loadCars();
 </script>
 <!------------------------------ END SUPABASE ------------------------------>
-
-    
-    <!-- ============================================================ -->
-    <!-- EDITABLE: CAR LISTING 1 -->
-    <!-- ============================================================ -->
-    <div class="card" data-title="bmw 2019">
-      <div class="card-img-wrap">
-        <img src="https://picsum.photos/seed/bmw/600/400" alt="BMW">
-      </div>
-      <div class="card-body">
-        <h3>2019 BMW 3 Series</h3> <!-- EDITABLE: Car name -->
-        <div class="price">$28,500</div> <!-- EDITABLE: Price -->
-        <p>48,200 mi · Clean history</p> <!-- EDITABLE: Details -->
-      </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- EDITABLE: CAR LISTING 2 -->
-    <!-- ============================================================ -->
-    <div class="card" data-title="audi 2020">
-      <div class="card-img-wrap">
-        <img src="https://picsum.photos/seed/audi/600/400" alt="Audi">
-      </div>
-      <div class="card-body">
-        <h3>2020 Audi A4</h3> <!-- EDITABLE: Car name -->
-        <div class="price">$31,000</div> <!-- EDITABLE: Price -->
-        <p>37,500 mi · Premium package</p> <!-- EDITABLE: Details -->
-      </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- EDITABLE: CAR LISTING 3 -->
-    <!-- ============================================================ -->
-    <div class="card" data-title="toyota 2018">
-      <div class="card-img-wrap">
-        <img src="https://picsum.photos/seed/toyota/600/400" alt="Toyota">
-      </div>
-      <div class="card-body">
-        <h3>2018 Toyota Camry</h3> <!-- EDITABLE: Car name -->
-        <div class="price">$19,800</div> <!-- EDITABLE: Price -->
-        <p>65,800 mi · Reliable daily</p> <!-- EDITABLE: Details -->
-      </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- EDITABLE: CAR LISTING 4 -->
-    <!-- ============================================================ -->
-    <div class="card" data-title="mercedes 2021">
-      <div class="card-img-wrap">
-        <img src="https://picsum.photos/seed/merc/600/400" alt="Mercedes">
-      </div>
-      <div class="card-body">
-        <h3>2021 Mercedes C-Class</h3> <!-- EDITABLE: Car name -->
-        <div class="price">$36,900</div> <!-- EDITABLE: Price -->
-        <p>22,100 mi · Luxury trim</p> <!-- EDITABLE: Details -->
-      </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- EDITABLE: CAR LISTING 5 -->
-    <!-- ============================================================ -->
-    <div class="card" data-title="honda 2019">
-      <div class="card-img-wrap">
-        <img src="https://picsum.photos/seed/honda/600/400" alt="Honda">
-      </div>
-      <div class="card-body">
-        <h3>2019 Honda Accord</h3> <!-- EDITABLE: Car name -->
-        <div class="price">$21,500</div> <!-- EDITABLE: Price -->
-        <p>54,300 mi · Sport model</p> <!-- EDITABLE: Details -->
-      </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- EDITABLE: CAR LISTING 6 -->
-    <!-- ============================================================ -->
-    <div class="card" data-title="tesla 2022">
-      <div class="card-img-wrap">
-        <img src="https://picsum.photos/seed/tesla/600/400" alt="Tesla">
-      </div>
-      <div class="card-body">
-        <h3>2022 Tesla Model 3</h3> <!-- EDITABLE: Car name -->
-        <div class="price">$38,000</div> <!-- EDITABLE: Price -->
-        <p>18,900 mi · Long range</p> <!-- EDITABLE: Details -->
-      </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- TO ADD MORE CARS: Copy one of the blocks above and paste here -->
-    <!-- Make sure to update data-title, image src, car name, price, and details -->
-    <!-- ============================================================ -->
-
   </div>
 </section>
 
@@ -765,14 +674,6 @@ loadCars();
     const cardsOnPage = document.querySelectorAll('#grid .card');
     cardsOnPage.forEach(c => {
       c.style.display = c.dataset.title.includes(v) ? '' : 'none';
-    });
-  });
-
-  // Make cards clickable to detail pages
-  document.querySelectorAll('.card').forEach(card => {
-    card.addEventListener('click', () => {
-      const carId = card.dataset.title.replace(/\s+/g, '-');
-      window.location.href = `cars/${carId}.html`;
     });
   });
 </script>
