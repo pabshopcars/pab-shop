@@ -772,9 +772,9 @@
     <!-- EDITABLE: Car Header -->
     <!-- ============================================================ -->
     <div class="car-header">
-      <h1>2019 BMW 3 Series</h1>
-      <div class="car-price">$28,500</div>
-      <div class="car-meta">48,200 miles · Clean history · M Sport Package</div>
+      <h1>Loading...</h1>
+      <div class="car-price">Loading...</div>
+      <div class="car-meta">Loading...</div>
     </div>
 
     <div class="content-grid">
@@ -805,43 +805,43 @@
           <div class="spec-list">
             <div class="spec-item">
               <span class="spec-label"><i class="fas fa-calendar-alt spec-icon"></i>Year</span>
-              <span class="spec-value">2019</span>
+              <span class="spec-value">Loading...</span>
             </div>
             <div class="spec-item">
               <span class="spec-label"><i class="fas fa-car spec-icon"></i>Make</span>
-              <span class="spec-value">BMW</span>
+              <span class="spec-value">Loading...</span>
             </div>
             <div class="spec-item">
               <span class="spec-label"><i class="fas fa-tag spec-icon"></i>Model</span>
-              <span class="spec-value">330i xDrive</span>
+              <span class="spec-value">Loading...</span>
             </div>
             <div class="spec-item">
               <span class="spec-label"><i class="fas fa-tachometer-alt spec-icon"></i>Mileage</span>
-              <span class="spec-value">48,200 mi</span>
+              <span class="spec-value">Loading...</span>
             </div>
             <div class="spec-item">
               <span class="spec-label"><i class="fas fa-cogs spec-icon"></i>Engine</span>
-              <span class="spec-value">2.0L Turbo I4</span>
+              <span class="spec-value">Loading...</span>
             </div>
             <div class="spec-item">
               <span class="spec-label"><i class="fas fa-cog spec-icon"></i>Transmission</span>
-              <span class="spec-value">8-Speed Auto</span>
+              <span class="spec-value">Loading...</span>
             </div>
             <div class="spec-item">
               <span class="spec-label"><i class="fas fa-road spec-icon"></i>Drivetrain</span>
-              <span class="spec-value">AWD (xDrive)</span>
+              <span class="spec-value">Loading...</span>
             </div>
             <div class="spec-item">
               <span class="spec-label"><i class="fas fa-palette spec-icon"></i>Exterior</span>
-              <span class="spec-value">Mineral White</span>
+              <span class="spec-value">Loading...</span>
             </div>
             <div class="spec-item">
               <span class="spec-label"><i class="fas fa-couch spec-icon"></i>Interior</span>
-              <span class="spec-value">Black Leather</span>
+              <span class="spec-value">Loading...</span>
             </div>
             <div class="spec-item">
               <span class="spec-label"><i class="fas fa-barcode spec-icon"></i>VIN</span>
-              <span class="spec-value">WBA5R1C59K...</span>
+              <span class="spec-value">Loading...</span>
             </div>
           </div>
         </div>
@@ -851,12 +851,11 @@
     <!-- ============================================================ -->
     <!-- EDITABLE: Description -->
     <!-- ============================================================ -->
-    <div class="description">
+<div class="description">
   <h2>About This Car</h2>
-  <p id="carDescription">
-    Loading...
-  </p>
-    </div>
+  <p id="carDescription">Loading...</p>
+</div>
+
 
   </section>
 
@@ -1097,24 +1096,18 @@ const images = Array.from(thumbs).map(t => t.dataset.img);
 </script>
 
 <!-------------------GPT------------------>
-  
-
-
-
-<!-------------------GPT END------------------>
-<!-------------------GPT------------------>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = "https://liipbpmjqjqxkuflufkv.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpaXBicG1qcWpxeGt1Zmx1Zmt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MTg0MjYsImV4cCI6MjA4MTQ5NDQyNn0.LrIRgiVCE6E9vyXduQZEkdKAmmLDij2kQN2ajjavTS8"; // same one you already use
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpaXBicG1qcWpxeGt1Zmx1Zmt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MTg0MjYsImV4cCI6MjA4MTQ5NDQyNn0.LrIRgiVCE6E9vyXduQZEkdKAmmLDij2kQN2ajjavTS8";
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   async function loadCar() {
-    const params = new URLSearchParams(window.location.search);
-    const carId = params.get("id");
+    const urlParams = new URLSearchParams(window.location.search);
+    const carId = urlParams.get("id");
 
     if (!carId) {
-      console.error("No car ID");
+      console.error("No car ID in URL");
       return;
     }
 
@@ -1129,43 +1122,141 @@ const images = Array.from(thumbs).map(t => t.dataset.img);
       return;
     }
 
-    console.log("Loaded car:", data);
-
-    renderHeader(data);
-
+    renderCar(data);
   }
 
-function renderHeader(car) {
-  document.querySelector(".car-header h1").textContent = car.title;
-  document.querySelector(".car-price").textContent = `$${car.price}`;
-  document.querySelector(".car-meta").textContent =
-    `${car.mileage} miles · ${car.history_status || "Clean history"}`;
+  function renderCar(car) {
+    // HEADER
+    const title = car.title || `${car.year || ""} ${car.make || ""} ${car.model || ""}`.trim();
+    document.querySelector(".car-header h1").textContent = title;
+    document.querySelector(".car-price").textContent = `$${car.price ?? ""}`;
+    document.querySelector(".car-meta").textContent =
+      `${car.mileage ?? "—"} miles · ${car.history_status || "Clean history"}`;
 
+    // DESCRIPTION
+    const descEl = document.getElementById("carDescription");
+    if (descEl) descEl.textContent = car.description || "No description available.";
 
-      // ✅ Step 3: description
-  const descEl = document.getElementById("carDescription");
-  if (descEl) {
-    descEl.textContent = car.description || "No description available.";
+    // MAIN IMAGE
+    const mainImgEl = document.getElementById("mainImg");
+    if (mainImgEl && car.cover_image) {
+      mainImgEl.src = car.cover_image;
+      mainImgEl.alt = title;
+    }
+
+    const imgs = Array.isArray(car.images) ? car.images : [];
+const galleryImages = imgs.length ? imgs : (car.cover_image ? [car.cover_image] : []);
+PAB_GALLERY.init(galleryImages);
+
+    // SPECS (match by label text)
+    document.querySelectorAll(".spec-item").forEach(item => {
+      const label = item.querySelector(".spec-label")?.textContent?.trim().toLowerCase();
+      const valueEl = item.querySelector(".spec-value");
+      if (!label || !valueEl) return;
+
+      if (label.includes("year")) valueEl.textContent = car.year ?? "—";
+      else if (label.includes("make")) valueEl.textContent = car.make ?? "—";
+      else if (label.includes("model")) valueEl.textContent = car.model ?? "—";
+      else if (label.includes("mileage")) valueEl.textContent = car.mileage ? `${car.mileage} mi` : "—";
+      else if (label.includes("engine")) valueEl.textContent = car.engine ?? "—";
+      else if (label.includes("transmission")) valueEl.textContent = car.transmission ?? "—";
+      else if (label.includes("drivetrain")) valueEl.textContent = car.drivetrain ?? "—";
+      else if (label.includes("exterior")) valueEl.textContent = car.exterior_color ?? "—";
+      else if (label.includes("interior")) valueEl.textContent = car.interior_color ?? "—";
+      else if (label.includes("vin")) valueEl.textContent = car.vin ?? "—";
+    });
   }
 
-  // ✅ Step 4: main image
-  const mainImg = document.getElementById("mainImg");
-  if (mainImg && car.cover_image) {
-    mainImg.src = car.cover_image;
-    mainImg.alt = car.title;
-  }
-
-  // ✅ Step 4: browser title
-  document.title = `${car.title} — PAB SHOP`;
-
-  // ✅ Step 4: meta description (if present)
-  const meta = document.querySelector('meta[name="description"]');
-  if (meta) {
-    meta.setAttribute("content", `${car.title} for sale - $${car.price}`);
-  }
-}
   loadCar();
 </script>
+
 <!---------------------GPT END------------------>
+<script>
+  // One gallery controller. No redeclare wars.
+  const PAB_GALLERY = {
+    images: [],
+    currentIndex: 0,
+    init(images) {
+      this.images = images.filter(Boolean);
+      this.currentIndex = 0;
+
+      const mainImg = document.getElementById("mainImg");
+      const thumbsContainer = document.querySelector(".thumbs");
+      const dotsContainer = document.getElementById("sliderDots");
+
+      if (!mainImg || !thumbsContainer || !dotsContainer) return;
+
+      // If no images, do nothing
+      if (this.images.length === 0) return;
+
+      // Main image
+      mainImg.src = this.images[0];
+
+      // Thumbs
+      thumbsContainer.innerHTML = this.images.map((url, idx) => `
+        <div class="thumb${idx === 0 ? " active" : ""}" data-idx="${idx}">
+          <img src="${url}" alt="Photo ${idx + 1}">
+        </div>
+      `).join("");
+
+      // Dots
+      dotsContainer.innerHTML = this.images.map((_, idx) => `
+        <div class="dot${idx === 0 ? " active" : ""}" data-idx="${idx}"></div>
+      `).join("");
+
+      // Click handlers (thumbs + dots)
+      thumbsContainer.querySelectorAll(".thumb").forEach(el => {
+        el.addEventListener("click", () => this.goTo(parseInt(el.dataset.idx, 10)));
+      });
+      dotsContainer.querySelectorAll(".dot").forEach(el => {
+        el.addEventListener("click", () => this.goTo(parseInt(el.dataset.idx, 10)));
+      });
+
+      // Prev/Next buttons already call changeSlide()
+      window.changeSlide = (dir) => {
+        if (!this.images.length) return;
+        let next = this.currentIndex + dir;
+        if (next < 0) next = this.images.length - 1;
+        if (next >= this.images.length) next = 0;
+        this.goTo(next);
+      };
+
+      // Fullscreen (re-uses your existing elements)
+      mainImg.onclick = () => {
+        const overlay = document.getElementById("fullscreenOverlay");
+        const fullImg = document.getElementById("fullscreenImg");
+        const counter = document.getElementById("fullscreenCounter");
+        if (!overlay || !fullImg || !counter) return;
+
+        fullImg.src = this.images[this.currentIndex];
+        counter.textContent = `${this.currentIndex + 1} / ${this.images.length}`;
+        overlay.classList.add("active");
+      };
+
+      // Fullscreen prev/next
+      const fullPrev = document.getElementById("fullscreenPrev");
+      const fullNext = document.getElementById("fullscreenNext");
+      const fullImg = document.getElementById("fullscreenImg");
+      const counter = document.getElementById("fullscreenCounter");
+
+      if (fullPrev) fullPrev.onclick = (e) => { e.stopPropagation(); window.changeSlide(-1); if(fullImg) fullImg.src = this.images[this.currentIndex]; if(counter) counter.textContent = `${this.currentIndex + 1} / ${this.images.length}`; };
+      if (fullNext) fullNext.onclick = (e) => { e.stopPropagation(); window.changeSlide(1);  if(fullImg) fullImg.src = this.images[this.currentIndex]; if(counter) counter.textContent = `${this.currentIndex + 1} / ${this.images.length}`; };
+    },
+
+    goTo(idx) {
+      this.currentIndex = idx;
+
+      const mainImg = document.getElementById("mainImg");
+      if (mainImg) mainImg.src = this.images[idx];
+
+      document.querySelectorAll(".thumb").forEach((t, i) => t.classList.toggle("active", i === idx));
+      document.querySelectorAll(".dot").forEach((d, i) => d.classList.toggle("active", i === idx));
+    }
+  };
+
+  // In your renderCar(car), call this at the end:
+  // PAB_GALLERY.init(galleryImages);
+</script>
+
   </body>
 </html>
