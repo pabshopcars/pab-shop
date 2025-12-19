@@ -925,6 +925,17 @@
     <button class="theme-btn" id="deleteCarBtn" style="flex:1;">Delete</button>
   </div>
 </div>
+<!-- ADMIN ONLY: IMAGE UPLOAD -->
+<div class="info-card admin-only" id="carUploadBox" style="display:none;">
+  <h3>Upload Photos</h3>
+
+  <input id="photoInput" type="file" accept="image/*" multiple
+    style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); margin-bottom:12px;">
+
+  <button class="theme-btn" id="uploadPhotosBtn" style="width:100%;">Upload Selected Photos</button>
+
+  <p id="uploadStatus" style="color:var(--muted); margin-top:12px;"></p>
+</div>
 
     <div class="description">
   <h2>About This Car</h2>
@@ -1173,14 +1184,70 @@ const images = Array.from(thumbs).map(t => t.dataset.img);
 </script>
 
 <!-------------------GPT------------------>
+<script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-const PAB_GALLERY = { ... }
-</script>
+
 <script>
   const SUPABASE_URL = "https://liipbpmjqjqxkuflufkv.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpaXBicG1qcWpxeGt1Zmx1Zmt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MTg0MjYsImV4cCI6MjA4MTQ5NDQyNn0.LrIRgiVCE6E9vyXduQZEkdKAmmLDij2kQN2ajjavTS8";
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // =========================
+// PHASE 2: UPLOAD HELPERS
+// =========================
+async function compressImage(file) {
+  const options = {
+    maxSizeMB: 0.45,
+    maxWidthOrHeight: 1920,
+    useWebWorker: true
+  };
+  return await imageCompression(file, options);
+}
+
+function getPublicUrl(path) {
+  const { data } = db.storage.from("cars").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function uploadPhotosForCar(carId, files) {
+  const uploadedUrls = [];
+
+  for (const file of files) {
+    const compressed = await compressImage(file);
+    const safeName = (compressed.name || "photo.jpg").replace(/\s+/g, "_");
+    const path = `${carId}/${Date.now()}_${safeName}`;
+
+    const { error } = await db.storage
+      .from("cars")
+      .upload(path, compressed, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: compressed.type || "image/jpeg"
+      });
+
+    if (error) throw error;
+
+    uploadedUrls.push(getPublicUrl(path));
+  }
+
+  return uploadedUrls;
+}
+
+async function saveCarImages(carId, newUrls) {
+  const existing = Array.isArray(window.currentCar?.images) ? window.currentCar.images : [];
+  const merged = [...existing, ...newUrls];
+
+  const { error } = await db.from("cars").update({ images: merged }).eq("id", carId);
+  if (error) throw error;
+}
+  
+
+
+
+
+
+
+
 
   async function loadCar() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -1207,6 +1274,7 @@ applyAdminView();
   }
 
   function renderCar(car) {
+    window.currentCar = car; // so upload functions can access car.id and existing images
     // HEADER
     const title = car.title || `${car.year || ""} ${car.make || ""} ${car.model || ""}`.trim();
     document.querySelector(".car-header h1").textContent = title;
@@ -1247,36 +1315,33 @@ PAB_GALLERY.init(galleryImages);
       else if (label.includes("vin")) valueEl.textContent = car.vin ?? "—";
     });
 
-
-
-
-
-
-
-
-
     // ADMIN BUTTONS (cars.html)
 const isAdmin = window.isAdmin && (localStorage.getItem("viewMode") !== "user");
 
 const adminBox = document.getElementById("carAdminActions");
 if (adminBox) adminBox.style.display = isAdmin ? "" : "none";
 
+const uploadBox = document.getElementById("carUploadBox");
+if (uploadBox) uploadBox.style.display = isAdmin ? "" : "none";
+
+
 const toggleSoldBtn = document.getElementById("toggleSoldBtn");
-if (toggleSoldBtn) toggleSoldBtn.textContent = (car.status === "sold") ? "Unmark Sold" : "Mark Sold";
+if (toggleSoldBtn) {
+  toggleSoldBtn.textContent = (car.status === "sold") ? "Unmark Sold" : "Mark Sold";
 
-const toggleBtn = document.getElementById("toggleSoldBtn");
-if (toggleBtn) toggleBtn.onclick = async () => {
-  if (!isAdmin) return;
+  toggleSoldBtn.onclick = async () => {
+    if (!isAdmin) return;
 
-  const nextStatus = (car.status === "sold") ? "available" : "sold";
-  const ok = confirm(`Set status to "${nextStatus}"?`);
-  if (!ok) return;
+    const nextStatus = (car.status === "sold") ? "available" : "sold";
+    const ok = confirm(`Set status to "${nextStatus}"?`);
+    if (!ok) return;
 
-  const { error } = await db.from("cars").update({ status: nextStatus }).eq("id", car.id);
-  if (error) { console.error(error); alert("Failed."); return; }
+    const { error } = await db.from("cars").update({ status: nextStatus }).eq("id", car.id);
+    if (error) { console.error(error); alert("Failed."); return; }
 
-  location.reload();
-};
+    location.reload();
+  };
+}
 
 
 const delBtn = document.getElementById("deleteCarBtn");
@@ -1460,29 +1525,59 @@ async function refreshAuthUI() {
   }
 
   // Wire buttons once DOM exists
-  document.addEventListener("DOMContentLoaded", async () => {
-    $("loginBtn")?.addEventListener("click", loginOwner);
-    $("logoutBtn")?.addEventListener("click", logoutOwner);
+document.addEventListener("DOMContentLoaded", async () => {
+  $("loginBtn")?.addEventListener("click", loginOwner);
+  $("logoutBtn")?.addEventListener("click", logoutOwner);
 
-    await refreshAuthUI();
+  // ✅ ADD THIS (UPLOAD BUTTON WIRING)
+  $("uploadPhotosBtn")?.addEventListener("click", async () => {
+    const isAdminEffective = window.isAdmin && (localStorage.getItem("viewMode") !== "user");
+    if (!isAdminEffective) return alert("Admin only.");
 
-    // Keep UI synced if session changes
-    db.auth.onAuthStateChange(() => refreshAuthUI());
+    const car = window.currentCar;
+    if (!car?.id) return alert("Car not loaded yet.");
 
-    $("showOwnerLoginBtn")?.addEventListener("click", () => {
-  // show admin login form
-  const adminSection = $("adminSection");
-  if (adminSection) adminSection.style.display = "";
+    const input = $("photoInput");
+    const status = $("uploadStatus");
+    const btn = $("uploadPhotosBtn");
 
-  // keep Owner Login button visible or hide it, your choice:
-  $("ownerLoginSection")?.style && ($("ownerLoginSection").style.display = "none");
+    const files = input?.files ? Array.from(input.files) : [];
+    if (!files.length) return alert("Choose photos first.");
 
-  // show login box (logged out state)
-  $("authLoggedOut") && ($("authLoggedOut").style.display = "");
-  $("authLoggedIn") && ($("authLoggedIn").style.display = "none");
-});
+    try {
+      btn.disabled = true;
+      btn.textContent = "Uploading...";
+      if (status) status.textContent = `Compressing + uploading ${files.length} photo(s)...`;
 
+      const urls = await uploadPhotosForCar(car.id, files);
+
+      if (status) status.textContent = `Saving ${urls.length} URL(s) to database...`;
+      await saveCarImages(car.id, urls);
+
+      if (status) status.textContent = "Done. Reloading...";
+      location.reload();
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed. Check console.");
+      if (status) status.textContent = "Upload failed.";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Upload Selected Photos";
+    }
   });
+
+  await refreshAuthUI();
+
+  db.auth.onAuthStateChange(() => refreshAuthUI());
+
+  $("showOwnerLoginBtn")?.addEventListener("click", () => {
+    const adminSection = $("adminSection");
+    if (adminSection) adminSection.style.display = "";
+    $("ownerLoginSection")?.style && ($("ownerLoginSection").style.display = "none");
+    $("authLoggedOut") && ($("authLoggedOut").style.display = "");
+    $("authLoggedIn") && ($("authLoggedIn").style.display = "none");
+  });
+});
 
 
 
