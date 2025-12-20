@@ -24,7 +24,10 @@
       --graybtn-border:rgba(15,23,36,0.10);
 
       --sold:#ef4444;
-      --ok:#10b981;
+
+      --warn:#f59e0b;
+      --warn2:#fbbf24;
+      --danger:#dc2626;
     }
     [data-theme="dark"]{
       --bg:#0b0f16;
@@ -139,6 +142,7 @@
       font-size:15px;
       color:var(--text);
       display:flex; align-items:center; justify-content:center; gap:8px;
+      user-select:none;
     }
     .theme-btn:hover{ transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.1); }
     .theme-btn.active{ border-color:var(--accent); background:var(--accent); color:#fff; }
@@ -266,16 +270,18 @@
       font-size:14px;
     }
 
-    /* ===== Buttons same system as your other pages ===== */
+    /* Default: buttons in one row (like home page) */
     .action-buttons{
       display:flex;
       gap:16px;
       width:100%;
       padding:0;
       margin-top:14px;
+      flex-wrap:nowrap;
+      align-items:stretch;
     }
     .action-btn{
-      flex:1;
+      flex:1 1 0;
       display:inline-flex;
       align-items:center;
       justify-content:center;
@@ -290,6 +296,7 @@
       box-shadow:0 4px 15px rgba(0,0,0,0.18);
       user-select:none;
       white-space:nowrap;
+      min-width:0;
     }
     .action-btn:hover{
       transform:translateY(-3px);
@@ -297,17 +304,19 @@
     }
     .action-btn:active{ transform:translateY(-1px); }
 
-    .action-btn.available{
-      background:linear-gradient(135deg,#10b981,#059669);
-      color:#fff;
-      box-shadow:0 4px 15px rgba(16,185,129,0.30);
+    /* Yellow "Unmark Sold" */
+    .action-btn.sold{
+      background:linear-gradient(135deg,var(--warn2),var(--warn));
+      color:#111827;
+      box-shadow:0 4px 15px rgba(245,158,11,0.35);
     }
-    .action-btn.available:hover{
-      box-shadow:0 8px 25px rgba(16,185,129,0.40);
+    .action-btn.sold:hover{
+      box-shadow:0 8px 25px rgba(245,158,11,0.45);
     }
 
+    /* Red delete */
     .action-btn.delete{
-      background:linear-gradient(135deg,#ff4d4d,#dc2626);
+      background:linear-gradient(135deg,#ff4d4d,var(--danger));
       color:#fff;
       box-shadow:0 4px 15px rgba(220,38,38,0.35);
     }
@@ -374,8 +383,174 @@
       .grid{grid-template-columns:1fr;gap:24px}
       .settings-modal{padding:24px}
       .contact-buttons{ padding:0 20px; }
-      .action-buttons{ flex-direction:column; }
+
+      /* keep default 1-per-row buttons in a row */
+      .action-btn{
+        padding:14px 12px;
+        font-size:14px;
+        border-radius:12px;
+      }
+
+      /* Layout toggle: 2-per-row option on mobile */
+      body[data-mobile-layout="two"] .grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        gap:14px;
+      }
+      body[data-mobile-layout="two"] .card-img-wrap{ height:150px; }
+      body[data-mobile-layout="two"] .card-body{ padding:14px; }
+      body[data-mobile-layout="two"] .card h3{ font-size:16px; margin-bottom:6px; }
+      body[data-mobile-layout="two"] .price{ font-size:18px; margin:6px 0; }
+      body[data-mobile-layout="two"] .card p{ font-size:12px; }
+
+      /* ✅ ONLY in 2-per-row mode: stack buttons */
+      body[data-mobile-layout="two"] .action-buttons{
+        flex-direction:column;
+        flex-wrap:nowrap;
+        gap:10px;
+      }
+      body[data-mobile-layout="two"] .action-btn{
+        width:100%;
+        flex:0 0 auto;
+        white-space:nowrap;
+      }
     }
+
+    /* ====== Pretty confirm modal ====== */
+    .pab-confirm-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.55);
+      backdrop-filter:blur(4px);
+      z-index:5000;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .pab-confirm-modal{
+      width:min(560px, 95vw);
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.35);
+      overflow:hidden;
+      transform:scale(0.95) translateY(10px);
+      opacity:0;
+      transition:transform 0.2s ease, opacity 0.2s ease;
+    }
+    .pab-confirm-overlay.active{ display:flex; }
+    .pab-confirm-overlay.active .pab-confirm-modal{
+      transform:scale(1) translateY(0);
+      opacity:1;
+    }
+    .pab-confirm-head{
+      padding:18px 18px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom:1px solid var(--border);
+      background:linear-gradient(135deg, rgba(11,110,255,0.08), rgba(11,110,255,0.03));
+    }
+    [data-theme="dark"] .pab-confirm-head{
+      background:linear-gradient(135deg, rgba(78,168,255,0.12), rgba(255,255,255,0.03));
+    }
+    .pab-confirm-title{
+      font-weight:900;
+      letter-spacing:-0.3px;
+      font-size:16px;
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .pab-confirm-icon{
+      width:34px; height:34px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+      background:var(--glass);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow);
+    }
+    .pab-confirm-close{
+      width:38px; height:38px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:var(--glass);
+      color:var(--text);
+      font-size:22px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:transform 0.2s ease;
+    }
+    .pab-confirm-close:hover{ transform:rotate(90deg); }
+    .pab-confirm-body{
+      padding:16px 18px 0;
+      color:var(--muted);
+      font-size:15px;
+      line-height:1.6;
+    }
+    .pab-confirm-actions{
+      padding:18px;
+      display:flex;
+      gap:12px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+    .pab-confirm-btn{
+      border:none;
+      border-radius:12px;
+      padding:12px 16px;
+      font-weight:900;
+      cursor:pointer;
+      transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
+      box-shadow:0 4px 15px rgba(0,0,0,0.18);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      min-width:120px;
+      font-size:14px;
+    }
+    .pab-confirm-btn:active{ transform:translateY(-1px); }
+
+    .pab-confirm-btn.cancel{
+      background:linear-gradient(135deg, rgba(15,23,36,0.10), rgba(15,23,36,0.18));
+      color:var(--text);
+    }
+    [data-theme="dark"] .pab-confirm-btn.cancel{
+      background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.14));
+      color:#fff;
+      box-shadow:0 4px 15px rgba(0,0,0,0.35);
+    }
+    .pab-confirm-btn.cancel:hover{ transform:translateY(-2px); box-shadow:0 8px 25px rgba(0,0,0,0.22); }
+
+    .pab-confirm-btn.ok{
+      background:linear-gradient(135deg,var(--accent),#2b8fff);
+      color:#fff;
+      box-shadow:0 4px 15px rgba(11,110,255,0.35);
+    }
+    .pab-confirm-btn.ok:hover{ transform:translateY(-2px); box-shadow:0 8px 25px rgba(11,110,255,0.45); }
+
+    .pab-confirm-btn.warn{
+      background:linear-gradient(135deg,var(--warn2),var(--warn));
+      color:#111827;
+      box-shadow:0 4px 15px rgba(245,158,11,0.35);
+    }
+    .pab-confirm-btn.warn:hover{ transform:translateY(-2px); box-shadow:0 8px 25px rgba(245,158,11,0.45); }
+
+    .pab-confirm-btn.danger{
+      background:linear-gradient(135deg,#ff4d4d,var(--danger));
+      color:#fff;
+      box-shadow:0 4px 15px rgba(220,38,38,0.35);
+    }
+    .pab-confirm-btn.danger:hover{ transform:translateY(-2px); box-shadow:0 8px 25px rgba(220,38,38,0.45); }
+    /* ====== end confirm modal ====== */
   </style>
 </head>
 
@@ -407,6 +582,18 @@
       <div class="theme-buttons">
         <button class="theme-btn" data-theme="light"><span>☀️</span><span>Light</span></button>
         <button class="theme-btn" data-theme="dark"><span>🌙</span><span>Dark</span></button>
+      </div>
+    </div>
+
+    <!-- Layout toggle (visible for everyone) -->
+    <div class="settings-section">
+      <h3>Layout</h3>
+      <div class="theme-buttons">
+        <button class="theme-btn" id="layoutOneBtn" type="button"><span>1️⃣</span><span>1 per row</span></button>
+        <button class="theme-btn" id="layoutTwoBtn" type="button"><span>2️⃣</span><span>2 per row</span></button>
+      </div>
+      <div style="margin-top:10px; color:var(--muted); font-size:13px; line-height:1.5;">
+        Mobile-only. Desktop stays the same.
       </div>
     </div>
 
@@ -462,6 +649,24 @@
   </div>
 </section>
 
+<!-- Pretty confirm modal -->
+<div class="pab-confirm-overlay" id="pabConfirmOverlay" aria-hidden="true">
+  <div class="pab-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="pabConfirmTitle">
+    <div class="pab-confirm-head">
+      <div class="pab-confirm-title" id="pabConfirmTitle">
+        <span class="pab-confirm-icon" id="pabConfirmIcon">?</span>
+        <span id="pabConfirmTitleText">Confirm</span>
+      </div>
+      <button class="pab-confirm-close" id="pabConfirmClose" type="button" aria-label="Close">×</button>
+    </div>
+    <div class="pab-confirm-body" id="pabConfirmMsg">Are you sure?</div>
+    <div class="pab-confirm-actions">
+      <button class="pab-confirm-btn cancel" id="pabConfirmCancel" type="button">Cancel</button>
+      <button class="pab-confirm-btn ok" id="pabConfirmOk" type="button">OK</button>
+    </div>
+  </div>
+</div>
+
 <footer>
   <div class="container">
     <p>© 2025 PAB SHOP. All rights reserved.</p>
@@ -481,7 +686,15 @@
 
   const savedTheme = localStorage.getItem('theme') || 'dark';
   root.setAttribute('data-theme', savedTheme);
-  updateThemeButtons();
+
+  function updateThemeButtons() {
+    const currentTheme = root.getAttribute('data-theme');
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      if (btn.dataset.theme){
+        btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+      }
+    });
+  }
 
   settingsToggle.onclick = () => settingsOverlay.classList.add('active');
   closeSettings.onclick = () => settingsOverlay.classList.remove('active');
@@ -497,12 +710,35 @@
     };
   });
 
-  function updateThemeButtons() {
-    const currentTheme = root.getAttribute('data-theme');
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.theme === currentTheme);
-    });
+  updateThemeButtons();
+
+  /**********************
+   * Layout toggle (mobile-only)
+   **********************/
+  function getMobileLayout(){ return localStorage.getItem("mobileLayout") || "one"; }
+  function setMobileLayout(v){
+    localStorage.setItem("mobileLayout", v);
+    applyMobileLayout();
+    updateLayoutButtons();
   }
+  function applyMobileLayout(){
+    const v = getMobileLayout();
+    document.body.setAttribute("data-mobile-layout", v === "two" ? "two" : "one");
+  }
+  function updateLayoutButtons(){
+    const one = document.getElementById("layoutOneBtn");
+    const two = document.getElementById("layoutTwoBtn");
+    if (!one || !two) return;
+    const v = getMobileLayout();
+    one.classList.toggle("active", v !== "two");
+    two.classList.toggle("active", v === "two");
+  }
+
+  document.getElementById("layoutOneBtn")?.addEventListener("click", () => setMobileLayout("one"));
+  document.getElementById("layoutTwoBtn")?.addEventListener("click", () => setMobileLayout("two"));
+
+  applyMobileLayout();
+  updateLayoutButtons();
 </script>
 
 <script>
@@ -519,9 +755,7 @@
   function getViewMode(){ return localStorage.getItem("viewMode") || "admin"; }
   function setViewMode(mode){
     localStorage.setItem("viewMode", mode);
-    updateViewButtons();
-    applyAdminView();
-    loadSoldCars(); // redraw cards with/without buttons
+    location.reload();
   }
   function canSeeAdminNow(){
     return window.isAdmin && (getViewMode() !== "user");
@@ -592,7 +826,7 @@
     if (error){ console.error(error); return alert("Login failed."); }
 
     await refreshAuthUI();
-    await loadSoldCars();
+    location.reload();
   }
 
   async function logoutOwner(){
@@ -600,19 +834,92 @@
     if (error) console.error(error);
 
     await refreshAuthUI();
-    await loadSoldCars();
+    location.reload();
   }
 
   /**********************
-   * Only two statuses
+   * Pretty confirm modal helper
    **********************/
-  function normalizeStatus(s){
-    return (s === "sold") ? "sold" : "available";
-  }
+  const PAB_CONFIRM = {
+    open: false,
+    resolver: null,
+    escHandler: null,
 
-  function safeText(v){
-    return (v === null || v === undefined) ? "" : String(v);
-  }
+    show({ title="Confirm", message="Are you sure?", okText="OK", cancelText="Cancel", variant="ok", icon="?" }){
+      return new Promise((resolve) => {
+        const overlay = $("pabConfirmOverlay");
+        const titleText = $("pabConfirmTitleText");
+        const msg = $("pabConfirmMsg");
+        const okBtn = $("pabConfirmOk");
+        const cancelBtn = $("pabConfirmCancel");
+        const closeBtn = $("pabConfirmClose");
+        const iconEl = $("pabConfirmIcon");
+        if (!overlay || !titleText || !msg || !okBtn || !cancelBtn || !closeBtn || !iconEl){
+          resolve(window.confirm(message));
+          return;
+        }
+
+        this.open = true;
+        this.resolver = resolve;
+
+        titleText.textContent = title;
+        msg.textContent = message;
+        iconEl.textContent = icon;
+
+        okBtn.textContent = okText;
+        cancelBtn.textContent = cancelText;
+
+        okBtn.classList.remove("danger","ok","warn");
+        okBtn.classList.add(variant === "danger" ? "danger" : (variant === "warn" ? "warn" : "ok"));
+
+        const finish = (val) => {
+          if (!this.open) return;
+          this.open = false;
+
+          overlay.classList.remove("active");
+          overlay.style.display = "none";
+          overlay.setAttribute("aria-hidden", "true");
+
+          okBtn.onclick = null;
+          cancelBtn.onclick = null;
+          closeBtn.onclick = null;
+
+          if (this.escHandler){
+            document.removeEventListener("keydown", this.escHandler);
+            this.escHandler = null;
+          }
+
+          const r = this.resolver;
+          this.resolver = null;
+          if (typeof r === "function") r(val);
+        };
+
+        okBtn.onclick = () => finish(true);
+        cancelBtn.onclick = () => finish(false);
+        closeBtn.onclick = () => finish(false);
+
+        overlay.onclick = (e) => {
+          if (e.target === overlay) finish(false);
+        };
+
+        this.escHandler = (e) => {
+          if (e.key === "Escape") finish(false);
+        };
+        document.addEventListener("keydown", this.escHandler);
+
+        overlay.style.display = "flex";
+        overlay.setAttribute("aria-hidden", "false");
+        requestAnimationFrame(() => overlay.classList.add("active"));
+        setTimeout(() => okBtn.focus(), 50);
+      });
+    }
+  };
+
+  /**********************
+   * Load sold cars
+   **********************/
+  function normalizeStatus(s){ return (s === "sold") ? "sold" : "available"; }
+  function safeText(v){ return (v === null || v === undefined) ? "" : String(v); }
   function safeNumText(v, fallback="—"){
     if (v === null || v === undefined || v === "") return fallback;
     const n = Number(v);
@@ -625,13 +932,17 @@
     return imgs[0] || "";
   }
 
-  /**********************
-   * Actions per-card
-   **********************/
-  async function markAvailable(carId){
+  async function unmarkSold(carId){
     if (!canSeeAdminNow()) return;
 
-    const ok = confirm("Mark this car as AVAILABLE?");
+    const ok = await PAB_CONFIRM.show({
+      title: "Unmark sold",
+      message: "Unmark this car as SOLD? It will show as available again.",
+      okText: "Unmark Sold",
+      cancelText: "Cancel",
+      variant: "warn",
+      icon: "⚠️"
+    });
     if (!ok) return;
 
     const { error } = await db.from("cars").update({ status: "available" }).eq("id", carId);
@@ -643,7 +954,14 @@
   async function deleteCar(carId){
     if (!canSeeAdminNow()) return;
 
-    const ok = confirm("Delete this car forever? (no undo)");
+    const ok = await PAB_CONFIRM.show({
+      title: "Delete car",
+      message: "Delete this car forever? (no undo)",
+      okText: "Delete",
+      cancelText: "Cancel",
+      variant: "danger",
+      icon: "🗑"
+    });
     if (!ok) return;
 
     const { error } = await db.from("cars").delete().eq("id", carId);
@@ -652,9 +970,6 @@
     await loadSoldCars();
   }
 
-  /**********************
-   * Load sold cars
-   **********************/
   async function loadSoldCars(){
     const grid = document.getElementById("grid");
     if (!grid) return;
@@ -702,29 +1017,26 @@
           <div class="price">${price ? `$${price}` : "—"}</div>
           <p>${mileage ? `${mileage} miles` : "—"}</p>
 
-          <!-- ALWAYS ON EACH CARD (admin only) -->
           ${showAdminButtons ? `
             <div class="action-buttons">
-              <button class="action-btn available" type="button" data-action="available">Mark Available</button>
+              <button class="action-btn sold" type="button" data-action="unmark">Unmark Sold</button>
               <button class="action-btn delete" type="button" data-action="delete">Delete</button>
             </div>
           ` : ``}
         </div>
       `;
 
-      // Card click opens car page
       card.addEventListener("click", () => {
         window.location.href = `cars/cars.html?id=${car.id}`;
       });
 
-      // Buttons must NOT trigger card click
-      const availBtn = card.querySelector('[data-action="available"]');
+      const unmarkBtn = card.querySelector('[data-action="unmark"]');
       const delBtn = card.querySelector('[data-action="delete"]');
 
-      if (availBtn){
-        availBtn.addEventListener("click", (e) => {
+      if (unmarkBtn){
+        unmarkBtn.addEventListener("click", (e) => {
           e.stopPropagation();
-          markAvailable(car.id);
+          unmarkSold(car.id);
         });
       }
       if (delBtn){
@@ -759,7 +1071,6 @@
     await refreshAuthUI();
     await loadSoldCars();
 
-    // No reload loop: just redraw
     db.auth.onAuthStateChange(async () => {
       await refreshAuthUI();
       await loadSoldCars();
