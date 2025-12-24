@@ -1861,64 +1861,75 @@
     return Array.from(new Set((arr || []).filter(Boolean)));
   }
 
-  // Cloudinary configuration
-  const CLOUDINARY = {
-    cloudName: 'dhhbcpnez',
-    uploadPreset: 'cars_unsigned',
-    uploadEndpoint: 'https://api.cloudinary.com/v1_1/dhhbcpnez/image/upload'
-  };
+  const STORAGE_BUCKET = 'cars';
 
-  function slugifyForFolder(s){
-    return String(s || "")
-      .trim()
-      .toLowerCase()
-      .replace(/['"]/g, "")          // drop quotes
-      .replace(/[^a-z0-9]+/g, "-")   // non-alnum -> dash
-      .replace(/-+/g, "-")           // collapse dashes
-      .replace(/^-|-$/g, "");        // trim dashes
+  function isFullUrl(val){
+    return typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'));
   }
 
-  function getCarFolderName(car){
-    const rawName =
-      (car && (car.name || car.title)) ||
-      "";
-
-    const slug = slugifyForFolder(rawName);
-    return slug ? slug : (car?.id || "unknown-car");
+  function safeFolderName(raw, fallback){
+    // Lowercase, trim, spaces->hyphens, remove unsafe, collapse hyphens, limit length
+    let s = String(raw || '').trim().toLowerCase();
+    // Replace separators/spaces with hyphen
+    s = s.replace(/[\s_]+/g, '-');
+    // Remove unsafe characters
+    s = s.replace(/[\\/\?#!%&"'<>\[\]{}()*+:;=,@$^`|~]/g, '-');
+    // Keep only a-z0-9 and hyphen
+    s = s.replace(/[^a-z0-9-]+/g, '-');
+    // Collapse multiple hyphens
+    s = s.replace(/-+/g, '-').replace(/^-|-$/g, '');
+    // Limit length
+    if (s.length > 60) s = s.slice(0, 60).replace(/-+$/g, '');
+    if (!s) s = String(fallback || 'unknown-car').trim().toLowerCase() || 'unknown-car';
+    // Final safety
+    s = s.replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    return s || 'unknown-car';
   }
 
-  function isFullUrl(val){ return typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://')); }
-  function isCloudinaryId(val){
-    if (!val || typeof val !== 'string') return false;
-    if (isFullUrl(val)) return false;
-    return true;
+  function getCarDisplayTitle(car){
+    const direct = (car && (car.title || car.name)) ? String(car.title || car.name).trim() : '';
+    if (direct) return direct;
+    const parts = [car?.year, car?.make, car?.model].map(v => String(v || '').trim()).filter(Boolean);
+    return parts.join(' ').trim();
   }
 
-  function normalizeImageId(idOrUrl){
-    if (!idOrUrl) return null;
-
-    // Already a Cloudinary public_id
-    if (!isFullUrl(idOrUrl)) return idOrUrl;
-
-    // Extract public_id from Cloudinary URL
-    const m = idOrUrl.match(/\/upload\/(?:[^/]+\/)*(.+)$/);
-    return m ? m[1].replace(/\.(jpg|jpeg|png|webp)$/i, "") : idOrUrl;
+  function getCarFolderPath(car){
+    const base = getCarDisplayTitle(car);
+    const folder = safeFolderName(base, car?.id || 'unknown-car');
+    return `cars/${folder}`;
   }
 
-  function cloudinaryEncodeId(id){
-    return id.split('/').map(s => encodeURIComponent(s)).join('/');
+  function toThumbUrl(fullUrl){
+    if (!fullUrl || !isFullUrl(fullUrl)) return fullUrl;
+    // Our convention: .../full/<file> -> .../thumb/<file>
+    if (fullUrl.includes('/full/')) return fullUrl.replace('/full/', '/thumb/');
+    return fullUrl;
   }
 
-  function cloudinaryFullUrl(publicId){
-    if (!publicId) return publicId;
-    const pid = cloudinaryEncodeId(publicId);
-    return `https://res.cloudinary.com/${CLOUDINARY.cloudName}/image/upload/f_auto/${pid}`;
+  function resolveImageRef(ref){
+    if (!ref) return "";
+    if (isFullUrl(ref)) return ref;
+    // Treat non-URL strings as Supabase Storage paths within the bucket
+    const path = String(ref).replace(/^\/+/, "");
+    try{
+      const { data } = db.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      return data?.publicUrl || "";
+    }catch(e){
+      return "";
+    }
   }
 
-  function cloudinaryThumbUrl(publicId){
-    if (!publicId) return publicId;
-    const pid = cloudinaryEncodeId(publicId);
-    return `https://res.cloudinary.com/${CLOUDINARY.cloudName}/image/upload/f_auto,q_auto,w_420,c_fill/${pid}`;
+  function resolveThumbRef(ref){
+    if (!ref) return "";
+    if (isFullUrl(ref)) return toThumbUrl(ref);
+    const path = String(ref).replace(/^\/+/, "");
+    const thumbPath = path.includes('/full/') ? path.replace('/full/','/thumb/') : path;
+    try{
+      const { data } = db.storage.from(STORAGE_BUCKET).getPublicUrl(thumbPath);
+      return data?.publicUrl || "";
+    }catch(e){
+      return "";
+    }
   }
 
   async function deleteAllCarImagesFromStorage(car){
@@ -1926,7 +1937,7 @@
     const urls = uniq([...(car.images || []), car.cover_image]);
     const paths = uniq(urls.map(urlToStoragePath).filter(Boolean));
     if (!paths.length) return;
-    const { error } = await db.storage.from('cars').remove(paths);
+    const { error } = await db.storage.from(STORAGE_BUCKET).remove(paths);
     if (error) throw error;
   }
 
@@ -2009,31 +2020,7 @@
     return webpBlob;
   }
 
-  async function cloudinaryUploadSingle(carId, fileBlob, filename){
-    const form = new FormData();
-    form.append('file', fileBlob, filename || 'upload.webp');
-    form.append('upload_preset', CLOUDINARY.uploadPreset);
-    const folderName = getCarFolderName(window.currentCar || { id: carId });
-    // Use folder for organization; public_id should be filename-only
-    form.append('folder', `cars/${folderName}`);
-
-    const safeBase = (filename || 'upload.webp').replace(/\.[^/.]+$/, '');
-    const unique = Date.now();
-
-    // IMPORTANT: public_id must NOT include "cars/..." here — Cloudinary will place it inside the folder
-    form.append('public_id', `${unique}_${safeBase}`);
-
-    const res = await fetch(CLOUDINARY.uploadEndpoint, { method: 'POST', body: form });
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err);
-    }
-    const json = await res.json();
-    console.log("Uploaded public_id:", json.public_id);
-    return { publicId: json.public_id, secureUrl: json.secure_url };
-  }
-
-  async function uploadOneWebPToCloudinary(carId, file, stamp){
+  async function uploadOneWebPToSupabase(carId, file, stamp){
     // Validate
     if (!file || !file.type || !file.type.startsWith('image/')){
       throw new Error('Only image files are allowed.');
@@ -2049,7 +2036,6 @@
     } = {}){
       let q = startQuality;
       let bestBlob = null;
-
       while (q >= minQuality){
         const blob = await convertToWebP(file, maxDim, q, false);
         if (!bestBlob || blob.size < bestBlob.size) bestBlob = blob;
@@ -2061,25 +2047,42 @@
       return { blob: bestBlob, qualityUsed: Math.max(minQuality, q + step), hitTarget: false };
     }
 
-    async function maybeCompressToWebP(file){
+    async function maybeCompressFull(file){
       const kb = (file && file.size) ? (file.size / 1024) : 0;
       if (kb < 100) return file; // keep original
       if (kb <= 200){
-        const blob = await convertToWebP(file, 1400, 0.9, false);
+        const blob = await convertToWebP(file, 1600, 0.9, false);
         return new File([blob], file.name.replace(/\.[\w]+$/, '.webp'), { type: 'image/webp' });
       }
-
-      // >200KB: run best-effort compressor toward 200KB
-      const result = await compressBestEffort(file, { targetBytes: 200 * 1024 });
+      const result = await compressBestEffort(file, { targetBytes: 200 * 1024, maxDim: 1600 });
       const uploadFile = new File([result.blob], file.name.replace(/\.[\w]+$/, '.webp'), { type: 'image/webp' });
       if (!result.hitTarget) console.warn('Could not reach 200KB. Uploaded best effort:', uploadFile.size, 'bytes');
       return uploadFile;
     }
 
-    const uploadFile = await maybeCompressToWebP(file);
-    const filename = uploadFile.name || `${stamp}_upload.webp`;
-    const { publicId, secureUrl } = await cloudinaryUploadSingle(carId, uploadFile, filename);
-    return { publicId, secureUrl };
+    const car = window.currentCar || { id: carId };
+    const folder = getCarFolderPath(car);
+    const base = sanitizeBaseName(file.name);
+    const unique = `${Date.now()}_${stamp || 0}_${Math.random().toString(16).slice(2,8)}`;
+
+    const fullFile = await maybeCompressFull(file);
+    const fullBlob = fullFile instanceof File ? fullFile : new File([fullFile], `${base}.webp`, { type: 'image/webp' });
+    const thumbBlob = await convertToWebP(file, 420, 0.86, true);
+
+    const fullPath = `${folder}/full/${unique}_${base}.webp`;
+    const thumbPath = `${folder}/thumb/${unique}_${base}.webp`;
+
+    const upOpts = { contentType: 'image/webp', cacheControl: '3600', upsert: false };
+
+    const { error: upFullErr } = await db.storage.from(STORAGE_BUCKET).upload(fullPath, fullBlob, upOpts);
+    if (upFullErr) throw upFullErr;
+    const { error: upThumbErr } = await db.storage.from(STORAGE_BUCKET).upload(thumbPath, thumbBlob, upOpts);
+    if (upThumbErr) throw upThumbErr;
+
+    const { data: fullData } = db.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
+    const { data: thumbData } = db.storage.from(STORAGE_BUCKET).getPublicUrl(thumbPath);
+
+    return { fullUrl: fullData?.publicUrl || null, thumbUrl: thumbData?.publicUrl || null, fullPath, thumbPath };
   }
 
   async function uploadPhotosForCar(carId, files){
@@ -2087,25 +2090,24 @@
     const uploaded = [];
     const stamp = Date.now();
     for (let i = 0; i < files.length; i++){
-      const up = await uploadOneWebPToCloudinary(carId, files[i], stamp + i);
+      const up = await uploadOneWebPToSupabase(carId, files[i], stamp + i);
       uploaded.push(up);
-      // call progress callback if provided (kept as arguments[2] for minimal change)
       try{ const onProgress = arguments[2]; if (typeof onProgress === 'function') onProgress(i+1, files.length, up); }catch(e){}
     }
     return uploaded;
   }
 
   async function saveCarImages(carId, newItems){
-    // store Cloudinary public_ids (or legacy full URLs) in cars.images array
+    // Store Supabase public URLs in cars.images array
     const existing = Array.isArray(window.currentCar?.images) ? window.currentCar.images : [];
-    const newIds = newItems.map(p => p.publicId || p.fullUrl || p).filter(Boolean);
-    const merged = [...existing, ...newIds];
+    const newUrls = newItems.map(p => p.fullUrl || p.url || p).filter(Boolean);
+    const merged = [...existing, ...newUrls];
     const { error } = await db.from('cars').update({ images: merged }).eq('id', carId);
     if (error) throw error;
   }
 
-  async function setCoverImage(carId, idOrUrl){
-    const { error } = await db.from('cars').update({ cover_image: idOrUrl }).eq('id', carId);
+  async function setCoverImage(carId, url){
+    const { error } = await db.from('cars').update({ cover_image: url || null }).eq('id', carId);
     if (error) throw error;
   }
 
@@ -2115,7 +2117,7 @@
     if (storagePath){
       const toRemove = [storagePath];
       if (storagePath.includes('/full/')) toRemove.push(storagePath.replace('/full/','/thumb/'));
-      const { error: storageErr } = await db.storage.from('cars').remove(toRemove);
+      const { error: storageErr } = await db.storage.from(STORAGE_BUCKET).remove(toRemove);
       if (storageErr) throw storageErr;
     }
     const car = window.currentCar;
@@ -2140,10 +2142,8 @@
     if (!overlay || !img) return;
 
     const idOrUrl = url;
-    // show display URL (Cloudinary transformed URL when public_id)
-    const displayUrl = isFullUrl(idOrUrl) ? idOrUrl : cloudinaryFullUrl(idOrUrl);
-
-    img.src = displayUrl;
+    // Supabase-only: we store and display public URLs
+    img.src = resolveImageRef(idOrUrl);
     img.dataset.url = idOrUrl;
     overlay.style.display = "flex";
     if (status) status.textContent = "";
@@ -2178,13 +2178,12 @@
 
       try{
         if (status) status.textContent = "Setting cover...";
-        const coverId = normalizeImageId(raw);
-        await setCoverImage(car.id, coverId);
+        await setCoverImage(car.id, raw);
         // update in-memory model + UI without reload
         window.currentCar = window.currentCar || {};
-        window.currentCar.cover_image = coverId;
+        window.currentCar.cover_image = raw;
         if (status) status.textContent = "Cover updated.";
-        const mainImg = $("mainImg"); if (mainImg) mainImg.src = cloudinaryFullUrl(coverId);
+        const mainImg = $("mainImg"); if (mainImg) mainImg.src = resolveImageRef(raw);
         const badge = $("adminCoverBadge"); if (badge) badge.style.display = "";
         const coverBtnEl = $("adminCoverBtn"); if (coverBtnEl) coverBtnEl.textContent = "Cover ✅";
         PAB_GALLERY.updateCoverBadges();
@@ -2272,8 +2271,8 @@
       if (nextBtn) nextBtn.style.display = showNav ? "flex" : "none";
       if (dotsBox) dotsBox.style.display = showNav ? "flex" : "none";
 
-      const resolveDisplay = (idOrUrl) => isFullUrl(idOrUrl) ? idOrUrl : cloudinaryFullUrl(idOrUrl);
-      const resolveThumb = (idOrUrl) => isFullUrl(idOrUrl) ? (idOrUrl.includes('/full/') ? idOrUrl.replace('/full/','/thumb/') : idOrUrl) : cloudinaryThumbUrl(idOrUrl);
+      const resolveDisplay = (ref) => resolveImageRef(ref);
+      const resolveThumb = (ref) => resolveThumbRef(ref);
 
       mainImg.src = resolveDisplay(this.images[0]);
 
@@ -2294,7 +2293,7 @@
           const parent = img.closest(".thumb");
           const idOrUrl = parent?.dataset?.img;
           if (!idOrUrl) return;
-          const fallback = isFullUrl(idOrUrl) ? idOrUrl : cloudinaryFullUrl(idOrUrl);
+          const fallback = resolveImageRef(idOrUrl);
           if (fallback && img.src !== fallback) img.src = fallback;
         }, { once:true });
       });
@@ -2387,7 +2386,7 @@
       let lastX = 0;
       let activePointerId = null;
 
-      const resolveDisplay = (idOrUrl) => isFullUrl(idOrUrl) ? idOrUrl : cloudinaryFullUrl(idOrUrl);
+      const resolveDisplay = (ref) => resolveImageRef(ref);
 
       const setGhostForDir = (dir) => {
         const g = ghost();
@@ -2578,7 +2577,7 @@
       let pinchStartScale = 1;
       let currentScale = 1;
 
-      const resolveDisplay = (idOrUrl) => isFullUrl(idOrUrl) ? idOrUrl : cloudinaryFullUrl(idOrUrl);
+      const resolveDisplay = (ref) => resolveImageRef(ref);
       const ghost = () => this.fullscreenSwipeGhost;
 
       const setGhostForDir = (dir) => {
@@ -2817,14 +2816,14 @@
     },
 
     preloadNeighbors(){
-      // Preload closest neighbors (3 left + 3 right) so swipe feels instant.
+      // Preload the 2 closest neighbors (prev + next) so swipe feels instant.
       if (!Array.isArray(this.images) || this.images.length <= 1) return;
 
-      const resolveDisplay = (idOrUrl) => isFullUrl(idOrUrl) ? idOrUrl : cloudinaryFullUrl(idOrUrl);
+      const resolveDisplay = (ref) => resolveImageRef(ref);
       const total = this.images.length;
 
       const toPreload = new Set();
-      for (let offset = 1; offset <= 3; offset++){
+      for (let offset = 1; offset <= 1; offset++){
         toPreload.add((this.currentIndex - offset + total) % total);
         toPreload.add((this.currentIndex + offset) % total);
       }
@@ -2842,7 +2841,7 @@
     goTo(idx){
       this.currentIndex = idx;
       const mainImg = $("mainImg");
-      if (mainImg) mainImg.src = isFullUrl(this.images[idx]) ? this.images[idx] : cloudinaryFullUrl(this.images[idx]);
+      if (mainImg) mainImg.src = resolveImageRef(this.images[idx]);
 
       this.updateActiveThumbs();
       this.preloadNeighbors();
@@ -2853,7 +2852,7 @@
       const fullImg = $("fullscreenImg");
       const counter = $("fullscreenCounter");
       if (!overlay || !fullImg || !counter) return;
-      fullImg.src = isFullUrl(this.images[this.currentIndex]) ? this.images[this.currentIndex] : cloudinaryFullUrl(this.images[this.currentIndex]);
+      fullImg.src = resolveImageRef(this.images[this.currentIndex]);
       // Use "of" instead of a slash for the slide count, matching the
       // reference video's counter style.
       counter.textContent = `${this.currentIndex + 1} of ${this.images.length}`;
@@ -2890,7 +2889,7 @@
       prev?.addEventListener("click", (e) => {
         e.stopPropagation();
         window.changeSlide(-1);
-        if (fullImg) fullImg.src = isFullUrl(this.images[this.currentIndex]) ? this.images[this.currentIndex] : cloudinaryFullUrl(this.images[this.currentIndex]);
+        if (fullImg) fullImg.src = resolveImageRef(this.images[this.currentIndex]);
         if (counter) counter.textContent = `${this.currentIndex + 1} of ${this.images.length}`;
       });
 
@@ -2904,7 +2903,7 @@
       next?.addEventListener("click", (e) => {
         e.stopPropagation();
         window.changeSlide(1);
-        if (fullImg) fullImg.src = isFullUrl(this.images[this.currentIndex]) ? this.images[this.currentIndex] : cloudinaryFullUrl(this.images[this.currentIndex]);
+        if (fullImg) fullImg.src = resolveImageRef(this.images[this.currentIndex]);
         if (counter) counter.textContent = `${this.currentIndex + 1} of ${this.images.length}`;
       });
 
@@ -2912,12 +2911,12 @@
         if (!overlay?.classList.contains("active")) return;
         if (e.key === "ArrowLeft"){
           window.changeSlide(-1);
-          if (fullImg) fullImg.src = isFullUrl(this.images[this.currentIndex]) ? this.images[this.currentIndex] : cloudinaryFullUrl(this.images[this.currentIndex]);
+          if (fullImg) fullImg.src = resolveImageRef(this.images[this.currentIndex]);
           if (counter) counter.textContent = `${this.currentIndex + 1} of ${this.images.length}`;
         }
         if (e.key === "ArrowRight"){
           window.changeSlide(1);
-          if (fullImg) fullImg.src = isFullUrl(this.images[this.currentIndex]) ? this.images[this.currentIndex] : cloudinaryFullUrl(this.images[this.currentIndex]);
+          if (fullImg) fullImg.src = resolveImageRef(this.images[this.currentIndex]);
           if (counter) counter.textContent = `${this.currentIndex + 1} of ${this.images.length}`;
         }
         if (e.key === "Escape"){
@@ -2942,7 +2941,7 @@
         const badge = el.querySelector(".thumb-cover-badge");
         if (!badge) return;
 
-        if (canSeeAdminNow() && cover && normalizeImageId(url) === cover){
+        if (canSeeAdminNow() && cover && url === cover){
           badge.style.display = "";
         } else {
           badge.style.display = "none";
@@ -3572,7 +3571,7 @@
     const mainImgEl = $("mainImg");
     if (mainImgEl){
       const cover = car.cover_image || (Array.isArray(car.images) && car.images[0]) || mainImgEl.src;
-      mainImgEl.src = cover ? (isFullUrl(cover) ? cover : cloudinaryFullUrl(cover)) : mainImgEl.src;
+      mainImgEl.src = cover ? resolveImageRef(cover) : mainImgEl.src;
       mainImgEl.alt = title || "Car photo";
     }
 
