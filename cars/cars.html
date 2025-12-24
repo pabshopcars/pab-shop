@@ -1649,6 +1649,58 @@
   window.isAdmin = false;
   function $(id){ return document.getElementById(id); }
 
+  // ===== reliability helpers (avoid "works only after reload" nonsense) =====
+  const ACTION_LOCKS = new Set();
+
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+  function isRetryableError(err){
+    const status = err?.status || err?.statusCode;
+    if (typeof status === "number"){
+      if ([400,401,403,404,409,413].includes(status)) return false;
+      if (status >= 500 || status === 429) return true;
+    }
+    // If we don't know, assume it might be transient (network/CORS/timeouts).
+    return true;
+  }
+
+  async function retryAsync(fn, retries = 2, baseDelay = 350){
+    let lastErr;
+    for (let attempt = 0; attempt <= retries; attempt++){
+      try{
+        return await fn(attempt);
+      } catch (e){
+        lastErr = e;
+        if (attempt >= retries || !isRetryableError(e)) break;
+        const jitter = Math.floor(Math.random() * 120);
+        const delay = baseDelay * (2 ** attempt) + jitter;
+        await sleep(delay);
+      }
+    }
+    throw lastErr;
+  }
+
+  async function withActionLock(key, fn){
+    if (ACTION_LOCKS.has(key)) return;
+    ACTION_LOCKS.add(key);
+    try{ return await fn(); }
+    finally{ ACTION_LOCKS.delete(key); }
+  }
+
+  async function sb(op){
+    const res = await op();
+    if (res?.error) throw res.error;
+    return res;
+  }
+
+  function formatNumber(val){
+    if (val === null || val === undefined || val === "") return "";
+    const n = Number(val);
+    if (!Number.isFinite(n)) return String(val);
+    return new Intl.NumberFormat("en-US").format(n);
+  }
+
+
   function getViewMode(){ return localStorage.getItem("viewMode") || "admin"; }
   function setViewMode(mode){
     localStorage.setItem("viewMode", mode);
@@ -2074,9 +2126,9 @@
 
     const upOpts = { contentType: 'image/webp', cacheControl: '3600', upsert: false };
 
-    const { error: upFullErr } = await db.storage.from(STORAGE_BUCKET).upload(fullPath, fullBlob, upOpts);
+    const { error: upFullErr } = await retryAsync(() => db.storage.from(STORAGE_BUCKET).upload(fullPath, fullBlob, upOpts), 2, 400);
     if (upFullErr) throw upFullErr;
-    const { error: upThumbErr } = await db.storage.from(STORAGE_BUCKET).upload(thumbPath, thumbBlob, upOpts);
+    const { error: upThumbErr } = await retryAsync(() => db.storage.from(STORAGE_BUCKET).upload(thumbPath, thumbBlob, upOpts), 2, 400);
     if (upThumbErr) throw upThumbErr;
 
     const { data: fullData } = db.storage.from(STORAGE_BUCKET).getPublicUrl(fullPath);
@@ -2102,12 +2154,12 @@
     const existing = Array.isArray(window.currentCar?.images) ? window.currentCar.images : [];
     const newUrls = newItems.map(p => p.fullUrl || p.url || p).filter(Boolean);
     const merged = [...existing, ...newUrls];
-    const { error } = await db.from('cars').update({ images: merged }).eq('id', carId);
+    const { error } = await retryAsync(() => db.from('cars').update({ images: merged }).eq('id', carId), 2, 350);
     if (error) throw error;
   }
 
   async function setCoverImage(carId, url){
-    const { error } = await db.from('cars').update({ cover_image: url || null }).eq('id', carId);
+    const { error } = await retryAsync(() => db.from('cars').update({ cover_image: url || null }).eq('id', carId), 2, 350);
     if (error) throw error;
   }
 
@@ -2170,6 +2222,7 @@
     });
 
     $("adminCoverBtn")?.addEventListener("click", async () => {
+      return await withActionLock("setCover", async () => {
       if (!canSeeAdminNow()) return alert("Admin only.");
       const car = window.currentCar;
       const raw = $("adminPhotoImg")?.dataset?.url;
@@ -2192,6 +2245,7 @@
         if (status) status.textContent = "Failed.";
         alert("Cover update failed. Check console.");
       }
+      });
     });
 
     $("adminDeleteBtn")?.addEventListener("click", async () => {
@@ -3019,6 +3073,7 @@
       commitTile.style.display = "none";
 
       commitTile.addEventListener("click", async () => {
+        return await withActionLock("uploadPhotos", async () => {
         if (!canSeeAdminNow()) return alert("Admin only.");
         const car = window.currentCar;
         if (!car?.id) return alert("Car not loaded yet.");
@@ -3090,6 +3145,7 @@
           commitTile.style.opacity = "";
           this.renderPendingThumbs();
         }
+        });
       });
 
       toolsRow.appendChild(uploadTile);
@@ -3428,6 +3484,7 @@
     },
 
     async saveChanges(){
+      return await withActionLock("saveChanges", async () => {
       if (!canSeeAdminNow()) return alert("Admin only.");
       const car = window.currentCar;
       if (!car?.id) return alert("Car not loaded yet.");
@@ -3459,7 +3516,9 @@
 
       try{
         this.setStatus("Saving...");
-        const { error } = await db.from("cars").update(payload).eq("id", car.id);
+        const btnIds = ["inlineSaveBtn","aboutSaveBtn","topSaveBtn","inlineEditBtn","aboutEditBtn","topEditBtn"];
+        btnIds.forEach(id => { const b=$(id); if (b){ b.disabled = true; b.style.opacity = "0.7"; b.style.pointerEvents = "none"; }});
+        const { error } = await retryAsync(() => db.from("cars").update(payload).eq("id", car.id), 2, 350);
         if (error) throw error;
 
         // merge changes into in-memory model and re-render without reload
@@ -3469,12 +3528,17 @@
         this.editing = false;
         this.resetUI();
         this.setStatus("Saved.");
+        // re-enable buttons
+        ["inlineSaveBtn","aboutSaveBtn","topSaveBtn","inlineEditBtn","aboutEditBtn","topEditBtn"].forEach(id => { const b=$(id); if (b){ b.disabled = false; b.style.opacity = ""; b.style.pointerEvents = ""; }});
         try{ renderCar(window.currentCar); }catch(e){ console.warn('renderCar failed', e); }
       } catch(err){
         console.error(err);
+        // re-enable buttons
+        ["inlineSaveBtn","aboutSaveBtn","topSaveBtn","inlineEditBtn","aboutEditBtn","topEditBtn"].forEach(id => { const b=$(id); if (b){ b.disabled = false; b.style.opacity = ""; b.style.pointerEvents = ""; }});
         this.setStatus("Save failed. Check console.");
         alert("Save failed. Open DevTools Console for details.");
       }
+      });
     }
   };
 
@@ -3496,10 +3560,10 @@
     if (m === null || m === undefined || m === "") return "";
     const n = Number(m);
     if (!Number.isFinite(n)) return String(m);
-    return `${n} mi`;
+    return `${formatNumber(n)} mi`;
   }
 
-  function setSpecValue(key, value){
+function setSpecValue(key, value){
     const item = document.querySelector(`.spec-item[data-key="${key}"]`);
     if (!item) return;
 
@@ -3529,7 +3593,14 @@
       return;
     }
 
-    valueHost.textContent = raw || "—";
+    {
+      let display = raw || "—";
+      if (raw !== ""){
+        if (key === "mileage") display = `${formatNumber(raw)} mi`;
+        if (key === "price") display = `$${formatNumber(raw)}`;
+      }
+      valueHost.textContent = display;
+    }
   }
 
   function escapeHtmlAttr(str){
@@ -3551,12 +3622,12 @@
     const priceInput = $("carPriceInput");
 
     if (titleText) titleText.textContent = title || "Car";
-    if (priceText) priceText.textContent = car.price != null ? `$${car.price}` : "—";
+    if (priceText) priceText.textContent = car.price != null ? `$${formatNumber(car.price)}` : "—";
     if (titleInput) titleInput.value = car.title ?? "";
     if (priceInput) priceInput.value = (car.price ?? "") + "";
 
     const meta = document.querySelector(".car-meta");
-    if (meta) meta.textContent = `${car.mileage ?? "—"} miles`;
+    if (meta) meta.textContent = `${car.mileage != null && car.mileage !== "" ? formatNumber(car.mileage) : "—"} miles`;
 
     // About This Car
     const descEl = $("carDescription");
